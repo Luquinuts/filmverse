@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import { TrendingSection } from '@/components/home/trending-section';
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
+    <main className="flex min-h-screen flex-col items-center px-4">
       {/* Hero */}
-      <section className="mx-auto max-w-3xl text-center">
+      <section className="mx-auto mt-16 max-w-3xl text-center">
         <h1 className="mb-4 text-5xl font-bold tracking-tight text-white sm:text-6xl">
           FilmVerse
         </h1>
@@ -32,6 +33,11 @@ export default function HomePage() {
             Iniciar sesión
           </Link>
         </div>
+      </section>
+
+      {/* Trending */}
+      <section className="mt-24 w-full">
+        <TrendingSection />
       </section>
 
       {/* Features */}

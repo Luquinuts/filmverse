@@ -130,4 +130,14 @@ export class TmdbClient {
       `/movie/${tmdbId}/credits?language=es-ES`,
     );
   }
+
+  /**
+   * Obtiene películas similares a una película por su ID de TMDB.
+   */
+  async getSimilarMovies(tmdbId: number): Promise<MovieSearchResult[]> {
+    const data = await this.fetchJson<{ results: MovieSearchResult[] }>(
+      `/movie/${tmdbId}/similar?language=es-ES&page=1`,
+    );
+    return data.results;
+  }
 }
