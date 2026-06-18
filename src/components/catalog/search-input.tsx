@@ -24,7 +24,7 @@ export function SearchInput({
 
   return (
     <div className="relative w-full max-w-md">
-      <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+      <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <input
         type="text"
         value={value}
@@ -32,9 +32,9 @@ export function SearchInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          'w-full rounded-lg border border-gray-700 bg-gray-900/80 py-2.5 pl-10 pr-4',
-          'text-sm text-gray-100 placeholder:text-gray-500',
-          'transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/40',
+          'w-full rounded-lg border border-white/10 bg-glass-bg py-2.5 pl-10 pr-4 backdrop-blur-[12px]',
+          'text-sm text-foreground placeholder:text-muted-foreground',
+          'transition-colors focus:border-cinema-gold/50 focus:outline-none focus:ring-1 focus:ring-cinema-gold/40',
         )}
       />
     </div>

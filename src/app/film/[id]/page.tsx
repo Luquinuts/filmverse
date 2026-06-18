@@ -53,17 +53,17 @@ export default function FilmDetailPage({
   // ── Loading skeleton ──
   if (state === 'loading') {
     return (
-      <div className="animate-pulse">
-        <div className="h-[50vh] w-full bg-gray-800" />
+      <div className="animate-shimmer">
+        <div className="h-[50vh] w-full bg-glass-bg" />
         <div className="mx-auto mt-8 max-w-7xl space-y-6 px-4">
-          <div className="h-8 w-64 rounded bg-gray-800" />
-          <div className="h-4 w-96 rounded bg-gray-800" />
+          <div className="h-8 w-64 rounded bg-glass-bg" />
+          <div className="h-4 w-96 rounded bg-glass-bg" />
           <div className="flex gap-4">
-            <div className="size-48 rounded-xl bg-gray-800" />
+            <div className="size-48 rounded-xl bg-glass-bg" />
             <div className="flex-1 space-y-4">
-              <div className="h-4 w-full rounded bg-gray-800" />
-              <div className="h-4 w-3/4 rounded bg-gray-800" />
-              <div className="h-4 w-1/2 rounded bg-gray-800" />
+              <div className="h-4 w-full rounded bg-glass-bg" />
+              <div className="h-4 w-3/4 rounded bg-glass-bg" />
+              <div className="h-4 w-1/2 rounded bg-glass-bg" />
             </div>
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function FilmDetailPage({
   if (state === 'error') {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="rounded-lg border border-gray-800 bg-gray-900/50 p-6 text-center text-gray-400">
+        <p className="glass p-6 text-center text-muted-foreground">
           No pudimos cargar la información de esta película. Intentalo de nuevo
           más tarde.
         </p>
@@ -87,7 +87,7 @@ export default function FilmDetailPage({
   if (state === 'not-found' || !movie) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="rounded-lg border border-gray-800 bg-gray-900/50 p-6 text-center text-gray-400">
+        <p className="glass p-6 text-center text-muted-foreground">
           Película no encontrada.
         </p>
       </div>
@@ -114,19 +114,19 @@ export default function FilmDetailPage({
             priority
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-800">
-            <span className="text-gray-600">Sin imagen disponible</span>
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <span className="text-muted-foreground">Sin imagen disponible</span>
           </div>
         )}
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
       </div>
 
       {/* Content */}
       <div className="relative mx-auto -mt-40 max-w-7xl px-4 pb-16">
         <div className="flex flex-col gap-6 sm:flex-row">
           {/* Poster */}
-          <div className="relative aspect-[2/3] w-48 flex-shrink-0 overflow-hidden rounded-xl shadow-lg shadow-black/40">
+          <div className="relative aspect-[2/3] w-48 flex-shrink-0 overflow-hidden rounded-xl border border-white/[4%] shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
             {movie.poster_path ? (
               <Image
                 src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
@@ -136,9 +136,9 @@ export default function FilmDetailPage({
                 priority
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gray-800">
+              <div className="flex h-full w-full items-center justify-center bg-muted">
                 <svg
-                  className="size-12 text-gray-600"
+                  className="size-12 text-muted-foreground"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -159,14 +159,14 @@ export default function FilmDetailPage({
             <div>
               <h1 className="text-3xl font-bold text-white">{movie.title}</h1>
               {movie.tagline && (
-                <p className="mt-1 text-sm italic text-gray-400">
+                <p className="mt-1 text-sm italic text-muted-foreground">
                   {movie.tagline}
                 </p>
               )}
             </div>
 
             {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-cinema-gold/70">
               {year && (
                 <span className="flex items-center gap-1">
                   <Calendar className="size-4" />
@@ -180,7 +180,7 @@ export default function FilmDetailPage({
                 </span>
               )}
               <span className="flex items-center gap-1">
-                <Star className="size-4 fill-yellow-500 text-yellow-500" />
+                <Star className="size-4 fill-cinema-gold text-cinema-gold" />
                 {movie.vote_average.toFixed(1)}
               </span>
             </div>
@@ -191,7 +191,7 @@ export default function FilmDetailPage({
                 {movie.genres.map((genre) => (
                   <span
                     key={genre.id}
-                    className="rounded-full border border-gray-700 bg-gray-800/60 px-3 py-1 text-xs text-gray-300"
+                    className="glass rounded-full px-3 py-1 text-xs text-muted-foreground"
                   >
                     {genre.name}
                   </span>
@@ -200,7 +200,7 @@ export default function FilmDetailPage({
             )}
 
             {/* Overview */}
-            <p className="max-w-2xl leading-relaxed text-gray-300">
+            <p className="max-w-2xl leading-relaxed text-muted-foreground">
               {movie.overview || 'Sin sinopsis disponible.'}
             </p>
           </div>

@@ -11,7 +11,7 @@ export function SimilarCarousel({ movies }: SimilarCarouselProps) {
   return (
     <section>
       <h2 className="mb-4 text-xl font-bold text-white">Películas similares</h2>
-      <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-gray-700">
+      <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
         {movies.map((movie) => (
           <div
             key={movie.id}

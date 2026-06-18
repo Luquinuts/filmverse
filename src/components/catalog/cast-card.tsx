@@ -10,7 +10,7 @@ export function CastCard({ name, character, profilePath }: CastCardProps) {
   return (
     <div className="flex flex-col items-center gap-2 text-center">
       {/* Photo */}
-      <div className="size-16 overflow-hidden rounded-full border border-gray-700">
+      <div className="size-16 overflow-hidden rounded-full border-2 border-white/[6%] transition-all duration-300 hover:ring-2 hover:ring-cinema-gold/30 hover:scale-105">
         {profilePath ? (
           <Image
             src={`https://image.tmdb.org/t/p/w185${profilePath}`}
@@ -20,9 +20,9 @@ export function CastCard({ name, character, profilePath }: CastCardProps) {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-800">
+          <div className="flex h-full w-full items-center justify-center bg-muted">
             <svg
-              className="size-6 text-gray-600"
+              className="size-6 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -40,8 +40,8 @@ export function CastCard({ name, character, profilePath }: CastCardProps) {
 
       {/* Info */}
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-gray-100">{name}</p>
-        <p className="truncate text-xs text-gray-400">{character}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+        <p className="truncate text-xs text-muted-foreground">{character}</p>
       </div>
     </div>
   );

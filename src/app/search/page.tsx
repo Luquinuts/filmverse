@@ -64,7 +64,7 @@ function SearchContent() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Search bar */}
       <div className="mb-8 flex flex-col items-center gap-4">
-        <h1 className="text-2xl font-bold text-white">Buscador de películas</h1>
+        <h1 className="text-2xl font-bold text-cinema-gold">Buscador de películas</h1>
         <SearchInput
           value={query}
           onChange={setQuery}
@@ -75,7 +75,7 @@ function SearchContent() {
 
       {/* States */}
       {state === 'initial' && (
-        <p className="mt-12 text-center text-gray-500">
+        <p className="mt-12 text-center text-muted-foreground">
           Escribí un título y presioná Enter para buscar.
         </p>
       )}
@@ -83,11 +83,11 @@ function SearchContent() {
       {state === 'loading' && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="aspect-[2/3] w-full rounded-xl bg-gray-800" />
+            <div key={i} className="animate-shimmer">
+              <div className="aspect-[2/3] w-full rounded-xl bg-glass-bg" />
               <div className="mt-2 space-y-2 p-2">
-                <div className="h-4 w-3/4 rounded bg-gray-800" />
-                <div className="h-3 w-1/2 rounded bg-gray-800" />
+                <div className="h-4 w-3/4 rounded bg-glass-bg" />
+                <div className="h-3 w-1/2 rounded bg-glass-bg" />
               </div>
             </div>
           ))}
@@ -95,17 +95,17 @@ function SearchContent() {
       )}
 
       {state === 'error' && (
-        <p className="mt-12 rounded-lg border border-gray-800 bg-gray-900/50 p-6 text-center text-gray-400">
+        <p className="mt-12 glass p-6 text-center text-muted-foreground">
           No pudimos completar la búsqueda. Intentalo de nuevo más tarde.
         </p>
       )}
 
       {state === 'no-results' && (
         <div className="mt-12 text-center">
-          <p className="text-gray-400">
+          <p className="text-muted-foreground">
             No encontramos resultados para &ldquo;{query}&rdquo;.
           </p>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             Probá con otro término de búsqueda.
           </p>
         </div>
@@ -113,7 +113,7 @@ function SearchContent() {
 
       {state === 'results' && (
         <>
-          <p className="mb-6 text-sm text-gray-400">
+          <p className="mb-6 text-sm text-muted-foreground">
             {movies.length} resultado{movies.length !== 1 ? 's' : ''} para
             &ldquo;{query}&rdquo;
           </p>
@@ -134,8 +134,8 @@ export default function SearchPage() {
       fallback={
         <div className="mx-auto max-w-7xl px-4 py-8">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-64 animate-pulse rounded bg-gray-800" />
-            <div className="h-10 w-full max-w-md animate-pulse rounded-lg bg-gray-800" />
+            <div className="h-8 w-64 animate-shimmer rounded bg-glass-bg" />
+            <div className="h-10 w-full max-w-md animate-shimmer rounded-lg bg-glass-bg" />
           </div>
         </div>
       }

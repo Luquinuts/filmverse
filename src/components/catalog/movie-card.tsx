@@ -21,8 +21,8 @@ export function MovieCard({ movie, priority = false }: MovieCardProps) {
       href={`/film/${movie.id}`}
       className={cn(
         'group relative flex flex-col overflow-hidden rounded-xl',
-        'border border-gray-800 bg-gray-900/80',
-        'transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/20 hover:border-indigo-500/30',
+        'glass glow-amber',
+        'transition-all duration-300 hover:scale-105 hover:border-cinema-gold/40',
       )}
     >
       {/* Poster */}
@@ -37,9 +37,9 @@ export function MovieCard({ movie, priority = false }: MovieCardProps) {
             priority={priority}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-800">
+          <div className="flex h-full w-full items-center justify-center bg-muted">
             <svg
-              className="size-12 text-gray-600"
+              className="size-12 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -57,14 +57,14 @@ export function MovieCard({ movie, priority = false }: MovieCardProps) {
 
       {/* Info */}
       <div className="flex flex-1 flex-col gap-1 p-3">
-        <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-gray-100 group-hover:text-white">
+        <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground group-hover:text-white">
           {movie.title}
         </h3>
 
-        <div className="mt-auto flex items-center justify-between text-xs text-gray-400">
+        <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
           {year ? <span>{year}</span> : <span />}
           <span className="flex items-center gap-1">
-            <Star className="size-3 fill-yellow-500 text-yellow-500" />
+            <Star className="size-3 fill-cinema-gold text-cinema-gold" />
             {movie.vote_average.toFixed(1)}
           </span>
         </div>

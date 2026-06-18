@@ -42,23 +42,23 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Landing Page
 
-- [ ] 3.1 **File**: `src/app/page.tsx` — Hero section: add gradient bg `from-cinema-gold/10 via-background to-background`. CTAs: primary `bg-cinema-gold text-black hover:bg-cinema-amber`, outline `border-cinema-gold/40 text-cinema-gold hover:bg-cinema-gold/10`.
-- [ ] 3.2 **File**: `src/app/page.tsx` — FeatureCard: replace `rounded-xl border border-gray-800 bg-gray-900/50 p-6 backdrop-blur-sm` with `glass rounded-2xl p-6 animate-fade-in`.
-- [ ] 3.3 **File**: `src/app/page.tsx` — Footer: keep `text-gray-600`, verify it works against new pure black bg (consider `text-muted-foreground` if contrast is low).
+- [x] 3.1 **File**: `src/app/page.tsx` — Hero section: add gradient bg `from-cinema-gold/10 via-background to-background`. CTAs: primary `bg-cinema-gold text-black hover:bg-cinema-amber`, outline `border-cinema-gold/40 text-cinema-gold hover:bg-cinema-gold/10`.
+- [x] 3.2 **File**: `src/app/page.tsx` — FeatureCard: replace `rounded-xl border border-gray-800 bg-gray-900/50 p-6 backdrop-blur-sm` with `glass rounded-2xl p-6 animate-fade-in`.
+- [x] 3.3 **File**: `src/app/page.tsx` — Footer: changed `text-gray-600` to `text-muted-foreground` for better contrast on pure black bg.
 
 ## Phase 4: Catalog Components
 
-- [ ] 4.1 **File**: `src/components/catalog/movie-card.tsx` — Container: `glass glow-amber hover:border-cinema-gold/40 hover:shadow-[0_0_25px_rgba(251,191,36,0.15)]` (was `bg-gray-900/80 border-gray-800 hover:shadow-indigo-500/20 hover:border-indigo-500/30`). Star: `fill-cinema-gold text-cinema-gold` (was `fill-yellow-500 text-yellow-500`).
-- [ ] 4.2 **File**: `src/components/catalog/cast-card.tsx` — Photo container: `hover:ring-2 hover:ring-cinema-gold/30 hover:scale-105 transition-all duration-300` (was plain `border-gray-700`).
-- [ ] 4.3 **File**: `src/components/catalog/search-input.tsx` — Focus classes: `focus:border-cinema-gold focus:ring-cinema-gold/40` (was `focus:border-indigo-500 focus:ring-indigo-500/40`).
-- [ ] 4.4 **File**: `src/components/catalog/similar-carousel.tsx` — Scrollbar: `scrollbar-thumb-white/10 scrollbar-track-transparent` (was `scrollbar-thumb-gray-700 scrollbar-track-gray-900`).
-- [ ] 4.5 **File**: `src/components/home/trending-section.tsx` — Heading: `text-cinema-gold` (was `text-white`). Loading skeletons: use `animate-shimmer` + glass bg (was `animate-pulse bg-gray-800`). Error/empty states: `glass p-6` (was `bg-gray-900/50 border-gray-800`).
+- [x] 4.1 **File**: `src/components/catalog/movie-card.tsx` — Container: `glass glow-amber hover:border-cinema-gold/40` (was `bg-gray-900/80 border-gray-800 hover:shadow-indigo-500/20 hover:border-indigo-500/30`). Star: `fill-cinema-gold text-cinema-gold` (was `fill-yellow-500 text-yellow-500`). Poster fallback: `bg-muted` / `text-muted-foreground`. Title: `text-foreground`. Year/rating: `text-muted-foreground`.
+- [x] 4.2 **File**: `src/components/catalog/cast-card.tsx` — Photo container: `border-2 border-white/[6%] hover:ring-2 hover:ring-cinema-gold/30 hover:scale-105 transition-all duration-300` (was plain `border-gray-700`). No-photo fallback: `bg-muted` / `text-muted-foreground`. Name: `text-foreground`. Character: `text-muted-foreground`.
+- [x] 4.3 **File**: `src/components/catalog/search-input.tsx` — Input: `border border-white/10 bg-glass-bg backdrop-blur-[12px]`. Focus: `focus:border-cinema-gold/50 focus:ring-cinema-gold/40`. Icon: `text-muted-foreground`.
+- [x] 4.4 **File**: `src/components/catalog/similar-carousel.tsx` — Scrollbar: `scrollbar-thumb-white/10 scrollbar-track-transparent` (was `scrollbar-thumb-gray-700 scrollbar-track-gray-900`).
+- [x] 4.5 **File**: `src/components/home/trending-section.tsx` — Heading: `text-cinema-gold` (was `text-white`). Loading skeletons: `animate-shimmer` + `bg-glass-bg` (was `animate-pulse bg-gray-800`). Error/empty states: `glass p-6 text-center text-muted-foreground` (was `rounded-lg border border-gray-800 bg-gray-900/50 text-gray-400`).
 
 ## Phase 5: Pages
 
-- [ ] 5.1 **File**: `src/app/film/[id]/page.tsx` — Backdrop overlay: `from-background via-background/80 to-transparent` (was `from-gray-950 via-gray-950/60`). Rating star: `fill-cinema-gold text-cinema-gold` (was `fill-yellow-500 text-yellow-500`). Genre pills: `glass` (was `bg-gray-800/60 border-gray-700 text-gray-300`). Meta icons: `text-cinema-gold/70` (was `text-gray-400`). Loading skeleton: replace `animate-pulse bg-gray-800` with `glass animate-shimmer`. Error/not-found: replace `bg-gray-900/50 border-gray-800` with `glass`.
-- [ ] 5.2 **File**: `src/app/search/page.tsx` — Heading: `text-cinema-gold` (was `text-white`). Error/no-results states: `glass` (was `bg-gray-900/50 border-gray-800`). Loading skeletons: `animate-shimmer` + glass bg (was `animate-pulse bg-gray-800`). SearchInput already updated in 4.3.
-- [ ] 5.3 **File**: `src/app/not-found.tsx` — 404 heading: `text-cinema-gold` (was `text-indigo-500`). CTA: `bg-cinema-gold text-black hover:bg-cinema-amber` (was `bg-indigo-600`).
+- [x] 5.1 **File**: `src/app/film/[id]/page.tsx` — Backdrop overlay: `from-background via-background/80 to-transparent` (was `from-gray-950 via-gray-950/60`). Rating star: `fill-cinema-gold text-cinema-gold` (was `fill-yellow-500 text-yellow-500`). Genre pills: `glass` (was `bg-gray-800/60 border-gray-700 text-gray-300`). Meta icons: `text-cinema-gold/70` (was `text-gray-400`). Loading skeleton: replace `animate-pulse bg-gray-800` with `glass animate-shimmer`. Error/not-found: replace `bg-gray-900/50 border-gray-800` with `glass`.
+- [x] 5.2 **File**: `src/app/search/page.tsx` — Heading: `text-cinema-gold` (was `text-white`). Error/no-results states: `glass` (was `bg-gray-900/50 border-gray-800`). Loading skeletons: `animate-shimmer` + glass bg (was `animate-pulse bg-gray-800`). SearchInput already updated in 4.3.
+- [x] 5.3 **File**: `src/app/not-found.tsx` — 404 heading: `text-cinema-gold` (was `text-indigo-500`). CTA: `bg-cinema-gold text-black hover:bg-cinema-amber` (was `bg-indigo-600`).
 
 ## Phase 6: Auth Form Components
 
