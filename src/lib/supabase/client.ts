@@ -10,25 +10,73 @@ export function createClient() {
 
   if (!url || !key) {
     if (typeof window !== 'undefined') {
-      console.warn(
-        'Supabase no está configurado. Configurá NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.',
+      console.info(
+        '🔓 Supabase no configurado — usando mock de autenticación. Cualquier usuario y contraseña funciona.',
       );
     }
-    // Stub que no rompe — todas las llamadas fallan silenciosamente
+
+    const mockUser = {
+      id: 'mock-user-001',
+      email: 'demo@filmverse.com',
+      user_metadata: { username: 'Demo' },
+      app_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+      role: 'authenticated',
+    };
+
+    const mockSession = {
+      access_token: 'mock_access_token',
+      refresh_token: 'mock_refresh_token',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: mockUser,
+    };
+
+    // Stub mock — acepta cualquier credencial, devuelve éxito
     return {
       auth: {
-        signInWithPassword: async () => ({ error: new Error('Supabase no configurado') }),
-        signUp: async () => ({ error: new Error('Supabase no configurado') }),
-        signInWithOAuth: async () => ({ error: new Error('Supabase no configurado') }),
+        signInWithPassword: async () => ({
+          data: { user: mockUser, session: mockSession },
+          error: null,
+        }),
+        signUp: async () => ({
+          data: { user: mockUser, session: mockSession },
+          error: null,
+        }),
+        signInWithOAuth: async () => ({
+          data: { provider: 'google', url: '' },
+          error: null,
+        }),
         signOut: async () => {},
-        resetPasswordForEmail: async () => ({ error: new Error('Supabase no configurado') }),
-        getUser: async () => ({ data: { user: null }, error: new Error('Supabase no configurado') }),
-        getSession: async () => ({ data: { session: null }, error: null }),
-        exchangeCodeForSession: async () => ({ data: {}, error: new Error('Supabase no configurado') }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        resetPasswordForEmail: async () => ({ data: {}, error: null }),
+        getUser: async () => ({
+          data: { user: mockUser },
+          error: null,
+        }),
+        getSession: async () => ({
+          data: { session: mockSession },
+          error: null,
+        }),
+        exchangeCodeForSession: async () => ({
+          data: { session: mockSession },
+          error: null,
+        }),
+        onAuthStateChange: () => ({
+          data: { subscription: { unsubscribe: () => {} } },
+        }),
       },
       from: () => ({
-        select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }), data: null, error: null }) }),
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: null, error: null }),
+            data: null,
+            error: null,
+          }),
+          data: null,
+          error: null,
+        }),
         insert: async () => ({ error: null }),
         update: async () => ({ error: null }),
         delete: async () => ({ error: null }),
