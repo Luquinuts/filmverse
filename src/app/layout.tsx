@@ -24,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={cn(inter.className, "font-sans", geist.variable)}>
-      <body className="bg-gray-950 text-gray-100">
+    <html lang="es" className={cn(inter.className, "font-sans", geist.variable, "dark")}>
+      <body className="bg-background text-foreground">
         <Navbar />
         <main className="pt-16">{children}</main>
       </body>

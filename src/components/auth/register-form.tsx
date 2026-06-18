@@ -186,7 +186,7 @@ export function RegisterForm({ redirectUrl = '/' }: RegisterFormProps) {
             ¿Ya tenés cuenta?{' '}
             <Link
               href="/login"
-              className="font-medium text-indigo-400 hover:text-indigo-300 transition"
+              className="font-medium text-cinema-gold hover:text-cinema-amber transition"
             >
               Iniciar sesión
             </Link>

@@ -18,12 +18,12 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-800 bg-gray-950/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 glass border-cinema-gold/20">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link
           href="/"
-          className="text-xl font-bold tracking-tight text-white hover:text-indigo-400 transition-colors"
+          className="text-xl font-bold tracking-tight text-white hover:text-cinema-gold transition-colors"
         >
           FilmVerse
         </Link>
@@ -38,13 +38,13 @@ export function Navbar() {
           />
           <Link
             href="/login"
-            className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
           >
             Iniciar sesión
           </Link>
           <Link
             href="/register"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            className="rounded-lg bg-cinema-gold px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-cinema-amber"
           >
             Crear cuenta
           </Link>
@@ -53,7 +53,7 @@ export function Navbar() {
         {/* Mobile: hamburger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="text-gray-300 transition-colors hover:text-white md:hidden"
+          className="text-muted-foreground transition-colors hover:text-cinema-gold md:hidden"
           aria-label="Abrir menú"
         >
           {mobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
@@ -62,7 +62,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="border-t border-gray-800 bg-gray-950 px-4 pb-4 md:hidden">
+        <div className="border-t border-cinema-gold/20 glass px-4 pb-4 md:hidden">
           <div className="mt-3">
             <SearchInput
               value={query}
@@ -77,14 +77,14 @@ export function Navbar() {
           <div className="mt-4 flex flex-col gap-3">
             <Link
               href="/login"
-              className="text-sm font-medium text-gray-300 transition-colors hover:text-white"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
               onClick={() => setMobileMenuOpen(false)}
             >
               Iniciar sesión
             </Link>
             <Link
               href="/register"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+              className="rounded-lg bg-cinema-gold px-4 py-2 text-center text-sm font-semibold text-black transition-colors hover:bg-cinema-amber"
               onClick={() => setMobileMenuOpen(false)}
             >
               Crear cuenta

@@ -104,7 +104,7 @@ export function LoginForm({ redirectUrl = '/' }: LoginFormProps) {
               <Label htmlFor="login-password">Contraseña</Label>
               <Link
                 href="/auth/reset-password"
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition"
+                className="text-xs text-cinema-gold hover:text-cinema-amber transition"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -149,7 +149,7 @@ export function LoginForm({ redirectUrl = '/' }: LoginFormProps) {
             ¿No tenés cuenta?{' '}
             <Link
               href="/register"
-              className="font-medium text-indigo-400 hover:text-indigo-300 transition"
+              className="font-medium text-cinema-gold hover:text-cinema-amber transition"
             >
               Crear cuenta
             </Link>
