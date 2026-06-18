@@ -88,7 +88,7 @@ function FeatureCard({
   return (
     <article className="glass rounded-2xl p-6 animate-fade-in">
       <h3 className="mb-2 font-semibold text-white">{title}</h3>
-      <p className="text-sm leading-relaxed text-gray-400">{description}</p>
+      <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
     </article>
   );
 }
