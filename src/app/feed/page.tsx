@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Rss, Users, UserPlus, ArrowLeft } from 'lucide-react';
+import { Rss, Users, UserPlus, Search, ArrowLeft, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { ReviewCard } from '@/components/reviews/review-card';
 import {
@@ -24,6 +24,7 @@ export default function FeedPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<ReviewEntry[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (authChecked.current) return;
@@ -85,6 +86,87 @@ export default function FeedPage() {
             Reseñas de usuarios que seguís
           </p>
         </div>
+      </div>
+
+      {/* Buscador de usuarios */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscá usuarios por nombre..."
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-10 text-sm text-white placeholder:text-muted-foreground focus:border-cinema-gold/50 focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Resultados de búsqueda */}
+        {searchQuery.trim().length > 0 && (
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+            {getSeedUsers()
+              .filter(
+                (u) =>
+                  u.username
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase()) &&
+                  u.userId !== userId,
+              )
+              .map((user) => {
+                const following = isFollowing(user.userId);
+                return (
+                  <div
+                    key={user.userId}
+                    className="flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-white/5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-full bg-cinema-gold/20">
+                        <Users className="size-4 text-cinema-gold" />
+                      </div>
+                      <span className="text-sm text-white">
+                        {user.username}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() =>
+                        handleFollowUser({
+                          userId: user.userId,
+                          username: user.username,
+                        })
+                      }
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                        following
+                          ? 'border border-red-400/30 text-red-400 hover:bg-red-400/10'
+                          : 'bg-cinema-gold text-black hover:bg-cinema-amber'
+                      }`}
+                    >
+                      {following ? 'Dejar de seguir' : 'Seguir'}
+                    </button>
+                  </div>
+                );
+              })}
+
+            {getSeedUsers().filter(
+              (u) =>
+                u.username
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) &&
+                u.userId !== userId,
+            ).length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No encontramos usuarios con &ldquo;{searchQuery}&rdquo;
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Sugerencias para seguir */}
