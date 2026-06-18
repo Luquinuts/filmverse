@@ -14,7 +14,7 @@ export interface LoginFormProps {
   redirectUrl?: string;
 }
 
-export function LoginForm({ redirectUrl = '/' }: LoginFormProps) {
+export function LoginForm({ redirectUrl = '/dashboard' }: LoginFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();

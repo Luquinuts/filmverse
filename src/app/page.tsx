@@ -1,7 +1,29 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 import { TrendingSection } from '@/components/home/trending-section';
 
 export default function HomePage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        router.replace('/dashboard');
+      } else {
+        setChecked(true);
+      }
+    });
+  }, [router, supabase.auth]);
+
+  // No renderizar nada hasta saber si está logueado
+  if (!checked) return null;
+
   return (
     <main className="flex min-h-screen flex-col items-center px-4">
       {/* Hero */}
