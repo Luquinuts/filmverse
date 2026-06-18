@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { Star, Clock, Calendar } from 'lucide-react';
+import { Star, Clock, Calendar, Bookmark } from 'lucide-react';
 import type { MovieDetail, MovieSearchResult } from '@/lib/types';
 import { CastCard } from '@/components/catalog/cast-card';
 import { SimilarCarousel } from '@/components/catalog/similar-carousel';
+import { ReviewSection } from '@/components/reviews/review-section';
+import { createClient } from '@/lib/supabase/client';
+import { isInWatchlist, toggleWatchlist } from '@/lib/local-store';
 
 type DetailState = 'loading' | 'error' | 'not-found' | 'success';
 
@@ -17,6 +20,24 @@ export default function FilmDetailPage({
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [similar, setSimilar] = useState<MovieSearchResult[]>([]);
   const [state, setState] = useState<DetailState>('loading');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [username, setUsername] = useState('');
+  const [inWatchlist, setInWatchlist] = useState(false);
+
+  // Get current user from mock auth
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserId(data.user.id);
+        setUsername(
+          (data.user.user_metadata?.username as string) ??
+            data.user.email?.split('@')[0] ??
+            'Usuario',
+        );
+      }
+    });
+  }, []);
 
   const fetchDetail = useCallback(async (id: string) => {
     setState('loading');
@@ -40,6 +61,7 @@ export default function FilmDetailPage({
 
       setMovie(movieData);
       setSimilar(similarData);
+      setInWatchlist(isInWatchlist(movieData.id));
       setState('success');
     } catch {
       setState('error');
@@ -203,6 +225,29 @@ export default function FilmDetailPage({
             <p className="max-w-2xl leading-relaxed text-muted-foreground">
               {movie.overview || 'Sin sinopsis disponible.'}
             </p>
+
+            {/* Watchlist button */}
+            {userId && (
+              <button
+                onClick={() => {
+                  const added = toggleWatchlist({
+                    filmId: movie.id,
+                    filmTitle: movie.title,
+                    filmPoster: movie.poster_path,
+                    filmYear: year,
+                  });
+                  setInWatchlist(added);
+                }}
+                className={`mt-3 flex items-center gap-2 self-start rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  inWatchlist
+                    ? 'bg-cinema-gold/20 text-cinema-gold border border-cinema-gold/40'
+                    : 'border border-white/10 text-muted-foreground hover:border-cinema-gold/40 hover:text-cinema-gold'
+                }`}
+              >
+                <Bookmark className={`size-4 ${inWatchlist ? 'fill-cinema-gold' : ''}`} />
+                {inWatchlist ? 'Guardada' : 'Guardar en lista'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -227,6 +272,20 @@ export default function FilmDetailPage({
         {similar.length > 0 && (
           <section className="mt-12">
             <SimilarCarousel movies={similar} />
+          </section>
+        )}
+
+        {/* Reviews */}
+        {userId && movie && (
+          <section className="mt-12">
+            <ReviewSection
+              filmId={movie.id}
+              filmTitle={movie.title}
+              filmPoster={movie.poster_path}
+              filmYear={movie.release_date ? new Date(movie.release_date).getFullYear() : null}
+              userId={userId}
+              username={username}
+            />
           </section>
         )}
       </div>
