@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
+  ArrowLeft,
   User,
   Star,
   Bookmark,
@@ -83,6 +84,15 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
+      {/* Back link */}
+      <Link
+        href="/dashboard"
+        className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+      >
+        <ArrowLeft className="size-4" />
+        Volver al Dashboard
+      </Link>
+
       {/* Profile header */}
       <div className="glass mb-8 rounded-2xl p-6">
         <div className="flex items-start justify-between gap-4">
