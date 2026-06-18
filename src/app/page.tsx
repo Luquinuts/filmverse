@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -8,10 +8,14 @@ import { TrendingSection } from '@/components/home/trending-section';
 
 export default function HomePage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useRef(createClient()).current;
+  const authChecked = useRef(false);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
+    if (authChecked.current) return;
+    authChecked.current = true;
+
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         router.replace('/dashboard');

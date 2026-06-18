@@ -1,21 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, User, Rss } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { SearchInput } from '@/components/catalog/search-input';
 
 export function Navbar() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useRef(createClient()).current;
+  const authChecked = useRef(false);
+
   const [query, setQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
 
   useEffect(() => {
+    if (authChecked.current) return;
+    authChecked.current = true;
+
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setIsLoggedIn(true);
@@ -55,13 +60,22 @@ export function Navbar() {
           />
 
           {isLoggedIn ? (
-            <Link
-              href="/profile"
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
-            >
-              <User className="size-4" />
-              {username}
-            </Link>
+            <>
+              <Link
+                href="/feed"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+              >
+                <Rss className="size-4" />
+                Feed
+              </Link>
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
+              >
+                <User className="size-4" />
+                {username}
+              </Link>
+            </>
           ) : (
             <>
               <Link
@@ -106,14 +120,24 @@ export function Navbar() {
           </div>
           <div className="mt-4 flex flex-col gap-3">
             {isLoggedIn ? (
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <User className="size-4" />
-                {username}
-              </Link>
+              <>
+                <Link
+                  href="/feed"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Rss className="size-4" />
+                  Feed
+                </Link>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User className="size-4" />
+                  {username}
+                </Link>
+              </>
             ) : (
               <>
                 <Link

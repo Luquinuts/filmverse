@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -27,7 +27,8 @@ type ProfileTab = 'reviews' | 'watchlist';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useRef(createClient()).current;
+  const authChecked = useRef(false);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
@@ -38,6 +39,9 @@ export default function ProfilePage() {
   const [watchlist, setWatchlist] = useState<WatchlistEntry[]>([]);
 
   useEffect(() => {
+    if (authChecked.current) return;
+    authChecked.current = true;
+
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
         router.push('/login?redirect=/profile');
@@ -59,7 +63,9 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/');
+    // Redirigir directo al login (no al home, que en modo mock
+    // detectaría sesión y redirigiría de vuelta al dashboard)
+    router.push('/login');
     router.refresh();
   };
 
