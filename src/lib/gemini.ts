@@ -197,7 +197,9 @@ Instrucciones:
       title: String(item.title ?? ''),
       reason: String(item.reason ?? ''),
       matchPercentage:
-        typeof item.matchPercentage === 'number' ? item.matchPercentage : undefined,
+        typeof item.matchPercentage === 'number'
+          ? Math.min(100, Math.max(0, item.matchPercentage))
+          : undefined,
     }));
 
     return recommendations;
