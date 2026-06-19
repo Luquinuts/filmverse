@@ -103,6 +103,111 @@ export function getUserRating(filmId: number, userId: string): number | null {
   return review?.rating ?? null;
 }
 
+// ─── Custom Lists ───
+
+export interface UserCustomList {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
+}
+
+export interface UserListFilm {
+  listId: string;
+  filmId: number;
+  filmTitle: string;
+  filmPoster: string | null;
+  filmYear: number | null;
+  addedAt: string; // ISO
+}
+
+const CUSTOM_LISTS_KEY = 'filmverse_custom_lists';
+
+function getCustomListsStore(): Record<string, { list: UserCustomList; films: UserListFilm[] }> {
+  return getItem<Record<string, { list: UserCustomList; films: UserListFilm[] }>>(
+    CUSTOM_LISTS_KEY,
+    {},
+  );
+}
+
+export function getLists(): UserCustomList[] {
+  const store = getCustomListsStore();
+  return Object.values(store)
+    .map((entry) => entry.list)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function getListById(
+  id: string,
+): { list: UserCustomList; films: UserListFilm[] } | null {
+  const store = getCustomListsStore();
+  const entry = store[id];
+  return entry ?? null;
+}
+
+export function createList(name: string, description: string = ''): UserCustomList {
+  const store = getCustomListsStore();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const list: UserCustomList = { id, name, description, createdAt: now, updatedAt: now };
+  store[id] = { list, films: [] };
+  setItem(CUSTOM_LISTS_KEY, store);
+  return list;
+}
+
+export function deleteList(id: string): void {
+  const store = getCustomListsStore();
+  delete store[id];
+  setItem(CUSTOM_LISTS_KEY, store);
+}
+
+export function renameList(id: string, name: string): void {
+  const store = getCustomListsStore();
+  const entry = store[id];
+  if (!entry) return;
+  entry.list.name = name;
+  entry.list.updatedAt = new Date().toISOString();
+  setItem(CUSTOM_LISTS_KEY, store);
+}
+
+export function addFilmToList(
+  listId: string,
+  film: Omit<UserListFilm, 'listId' | 'addedAt'>,
+): void {
+  const store = getCustomListsStore();
+  const entry = store[listId];
+  if (!entry) return;
+  // Idempotent: skip if filmId already in list
+  if (entry.films.some((f) => f.filmId === film.filmId)) return;
+  entry.films.push({
+    ...film,
+    listId,
+    addedAt: new Date().toISOString(),
+  });
+  entry.list.updatedAt = new Date().toISOString();
+  setItem(CUSTOM_LISTS_KEY, store);
+}
+
+export function removeFilmFromList(listId: string, filmId: number): void {
+  const store = getCustomListsStore();
+  const entry = store[listId];
+  if (!entry) return;
+  entry.films = entry.films.filter((f) => f.filmId !== filmId);
+  entry.list.updatedAt = new Date().toISOString();
+  setItem(CUSTOM_LISTS_KEY, store);
+}
+
+export function getListFilms(listId: string): UserListFilm[] {
+  const store = getCustomListsStore();
+  return store[listId]?.films ?? [];
+}
+
+export function isFilmInList(listId: string, filmId: number): boolean {
+  const store = getCustomListsStore();
+  return store[listId]?.films.some((f) => f.filmId === filmId) ?? false;
+}
+
 // ─── Watchlist ───
 
 const WATCHLIST_KEY = 'filmverse_watchlist';
@@ -135,11 +240,13 @@ export function getUserStats(userId: string) {
   const reviews = getUserReviews(userId);
   const watchlist = getWatchlist();
   const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+  const listsStore = getItem<Record<string, unknown>>(CUSTOM_LISTS_KEY, {});
 
   return {
     reviewsCount: reviews.length,
     watchlistCount: watchlist.length,
     averageRating: reviews.length > 0 ? totalRating / reviews.length : 0,
+    listsCount: Object.keys(listsStore).length,
   };
 }
 
