@@ -31,3 +31,17 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+/**
+ * GET /api/ai/chat — endpoint de diagnóstico para verificar
+ * que la API key de Gemini está configurada.
+ */
+export async function GET() {
+  const hasKey = !!process.env.GEMINI_API_KEY;
+  return NextResponse.json({
+    configured: hasKey,
+    hint: hasKey
+      ? '✅ GEMINI_API_KEY está configurada'
+      : '❌ GEMINI_API_KEY no está configurada. Agregala en Vercel > Settings > Environment Variables',
+  });
+}
