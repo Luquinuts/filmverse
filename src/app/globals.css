@@ -164,8 +164,8 @@
 @utility glass {
   background-color: var(--color-glass-bg);
   border: 1px solid var(--color-glass-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
 }
 @utility glow-amber {
   transition: box-shadow 0.3s ease;
