@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { Star, Clock, Calendar, Bookmark } from 'lucide-react';
+import { Star, Clock, Calendar, Bookmark, ListPlus } from 'lucide-react';
 import type { MovieDetail, MovieSearchResult } from '@/lib/types';
 import { CastCard } from '@/components/catalog/cast-card';
 import { SimilarCarousel } from '@/components/catalog/similar-carousel';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { createClient } from '@/lib/supabase/client';
+import { AddToListDialog } from '@/components/lists/add-to-list-dialog';
 import { isInWatchlist, toggleWatchlist } from '@/lib/local-store';
 
 type DetailState = 'loading' | 'error' | 'not-found' | 'success';
@@ -23,6 +24,7 @@ export default function FilmDetailPage({
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [inWatchlist, setInWatchlist] = useState(false);
+  const [listDialogOpen, setListDialogOpen] = useState(false);
 
   // Get current user from mock auth
   useEffect(() => {
@@ -228,25 +230,49 @@ export default function FilmDetailPage({
 
             {/* Watchlist button */}
             {userId && (
-              <button
-                onClick={() => {
-                  const added = toggleWatchlist({
+              <>
+                <button
+                  onClick={() => {
+                    const added = toggleWatchlist({
+                      filmId: movie.id,
+                      filmTitle: movie.title,
+                      filmPoster: movie.poster_path,
+                      filmYear: year,
+                    });
+                    setInWatchlist(added);
+                  }}
+                  className={`mt-3 flex items-center gap-2 self-start rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                    inWatchlist
+                      ? 'bg-cinema-gold/20 text-cinema-gold border border-cinema-gold/40'
+                      : 'border border-white/10 text-muted-foreground hover:border-cinema-gold/40 hover:text-cinema-gold'
+                  }`}
+                >
+                  <Bookmark className={`size-4 ${inWatchlist ? 'fill-cinema-gold' : ''}`} />
+                  {inWatchlist ? 'Guardada' : 'Guardar en lista'}
+                </button>
+
+                {/* Add to list button */}
+                <button
+                  onClick={() => setListDialogOpen(true)}
+                  className="mt-3 flex items-center gap-2 self-start rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-cinema-gold/40 hover:text-cinema-gold"
+                >
+                  <ListPlus className="size-4" />
+                  Agregar a lista...
+                </button>
+
+                <AddToListDialog
+                  open={listDialogOpen}
+                  onClose={() => setListDialogOpen(false)}
+                  film={{
                     filmId: movie.id,
                     filmTitle: movie.title,
-                    filmPoster: movie.poster_path,
-                    filmYear: year,
-                  });
-                  setInWatchlist(added);
-                }}
-                className={`mt-3 flex items-center gap-2 self-start rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  inWatchlist
-                    ? 'bg-cinema-gold/20 text-cinema-gold border border-cinema-gold/40'
-                    : 'border border-white/10 text-muted-foreground hover:border-cinema-gold/40 hover:text-cinema-gold'
-                }`}
-              >
-                <Bookmark className={`size-4 ${inWatchlist ? 'fill-cinema-gold' : ''}`} />
-                {inWatchlist ? 'Guardada' : 'Guardar en lista'}
-              </button>
+                    filmPoster: movie.poster_path
+                      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                      : '',
+                    filmYear: year ?? 0,
+                  }}
+                />
+              </>
             )}
           </div>
         </div>
