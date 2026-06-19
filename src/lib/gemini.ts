@@ -167,8 +167,8 @@ INSTRUCCIONES:
     },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generation_config: {
-      temperature: 0.9,
-      max_output_tokens: 1500,
+      temperature: 0.5,
+      max_output_tokens: 8192,
     },
   };
 
