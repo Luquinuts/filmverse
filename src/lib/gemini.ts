@@ -150,24 +150,23 @@ ${watchlistContext || '(vacía)'}
 INSTRUCCIONES:
 - Recomendá películas reales, variadas y conocidas.
 - NO incluyas películas que el usuario ya reseñó o tiene en watchlist.
-- Devolvé SOLO un array JSON. Cada objeto con: "title", "reason", "matchPercentage".
+- Devolvé únicamente un JSON array. Cada objeto debe tener: "title", "reason", "matchPercentage".
 - "reason": explicación breve en español rioplatense (1 oración).
 - "matchPercentage": número del 1 al 100.
-- Ejemplo válido: [{"title":"The Matrix","reason":"Te gustaron las de ciencia ficción","matchPercentage":85}]
+- Ejemplo: [{"title":"The Matrix","reason":"Te gustaron las de ciencia ficción","matchPercentage":85}]
 - Devolvé entre 1 y 5 recomendaciones.
-- No agregues texto fuera del JSON.`;
+- No incluyas NADA fuera del JSON. No expliques, no saludes, solo el JSON.`;
 
   const requestBody = {
     system_instruction: {
       parts: [
         {
-          text: 'Sos un experto en cine. Respondé únicamente con JSON, sin texto adicional.',
+          text: 'Eres un experto en cine. Respondes exclusivamente con JSON válido, sin texto adicional ni explicaciones.',
         },
       ],
     },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generation_config: {
-      response_mime_type: 'application/json',
       temperature: 0.9,
       max_output_tokens: 1500,
     },
