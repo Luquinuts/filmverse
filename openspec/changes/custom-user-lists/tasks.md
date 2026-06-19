@@ -9,7 +9,7 @@
 | Chained PRs recommended | No |
 | Suggested split | Single PR |
 | Delivery strategy | single-pr |
-| Chain strategy | pending |
+| Chain strategy | stacked-to-main |
 
 Decision needed before apply: No
 Chained PRs recommended: No
@@ -39,18 +39,18 @@ Chain strategy: pending
 
 ## Phase 2: Shared Components (`src/components/lists/`)
 
-- [ ] 2.1 Create `src/components/lists/list-card.tsx` — card component that receives `list: UserCustomList & { filmCount: number }`. Shows gradient placeholder (no single poster), name, film count; wraps in `<Link href="/lists/[id]">`
-- [ ] 2.2 Create `src/components/lists/lists-tab.tsx` — profile tab content: calls `getLists()`, renders responsive grid (2→3→4 cols) of `ListCard` components. Empty state: icon + "Todavía no creaste ninguna lista"
+- [x] 2.1 Create `src/components/lists/list-card.tsx` — card component that receives `list: UserCustomList & { filmCount: number }`. Shows gradient placeholder (no single poster), name, film count; wraps in `<Link href="/lists/[id]">`
+- [x] 2.2 Create `src/components/lists/lists-tab.tsx` — profile tab content: calls `getLists()`, renders responsive grid (2→3→4 cols) of `ListCard` components. Empty state: icon + "Todavía no creaste ninguna lista"
 - [x] 2.3 Create `src/components/lists/add-to-list-dialog.tsx` — base-ui `<Dialog.Popup>` with checkboxes for each existing list (checked = `isFilmInList`), toggle calls `addFilmToList`/`removeFilmFromList` directly. Bottom section: text input + "Crear lista nueva" button (disabled if empty/whitespace). On create: calls `createList(name)` then `addFilmToList(id, film)`. Props: `open`, `onClose`, `film: { filmId, filmTitle, filmPoster, filmYear }`
 
 ## Phase 3: Page Wiring
 
-- [ ] 3.1 `src/app/profile/page.tsx` — add `'lists'` to `ProfileTab` union type; add third tab button "Mis Listas" in tab bar; render `ListsTab` when `tab === 'lists'`; import `ListsTab` and `getLists` from local-store; update stats grid to show `listsCount` as fourth stat card
+- [x] 3.1 `src/app/profile/page.tsx` — add `'lists'` to `ProfileTab` union type; add third tab button "Mis Listas" in tab bar; render `ListsTab` when `tab === 'lists'`; import `ListsTab` and `getLists` from local-store; update stats grid to show `listsCount` as fourth stat card
 - [x] 3.2 `src/app/film/[id]/page.tsx` — import `AddToListDialog`; import `getLists`; add `listDialogOpen` state + `toggle` handler; render "Agregar a lista..." button below the watchlist button (gated behind `userId &&`); render `<AddToListDialog open={listDialogOpen} onClose={() => setListDialogOpen(false)} film={...} />`
 
 ## Phase 4: New Route — `/lists/[listId]`
 
-- [ ] 4.1 Create `src/app/lists/[listId]/page.tsx` — `'use client'`, reads `params.listId`, calls `getListById()`. If null → `notFound()`. Renders glass header (name, description, film count, "Eliminar lista" button). Grid of film posters (same 2→3→4 col pattern). Each poster has "Quitar de la lista" overlay. Empty state if no films. Delete with confirm → redirect to `/profile`. Not found: "Lista no encontrada"
+- [x] 4.1 Create `src/app/lists/[listId]/page.tsx` — `'use client'`, reads `params.listId`, calls `getListById()`. If null → rendered "Lista no encontrada". Glass header (name, description, film count, "Eliminar lista" button). Grid of film posters (same 2→3→4 col pattern). Each poster has "Quitar" overlay (X icon). Empty state if no films. Delete with confirm → redirect to `/profile`.
 
 ## Phase 5: Testing / Verification
 
