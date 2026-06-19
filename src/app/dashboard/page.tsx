@@ -8,8 +8,6 @@ import {
   Bookmark,
   MessageSquareText,
   TrendingUp,
-  Search,
-  Film,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -108,34 +106,6 @@ export default function DashboardPage() {
             {stats.watchlistCount}
           </p>
           <p className="text-xs text-muted-foreground">Películas guardadas</p>
-        </Link>
-      </section>
-
-      {/* Quick actions */}
-      <section className="mb-10 grid gap-3 sm:grid-cols-2">
-        <Link
-          href="/search"
-          className="flex items-center gap-3 rounded-xl border border-white/10 p-4 transition-colors hover:border-cinema-gold/40"
-        >
-          <Search className="size-5 text-cinema-gold" />
-          <div>
-            <p className="text-sm font-medium text-white">Buscar películas</p>
-            <p className="text-xs text-muted-foreground">
-              Encontrá cualquier título
-            </p>
-          </div>
-        </Link>
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-xl border border-white/10 p-4 transition-colors hover:border-cinema-gold/40"
-        >
-          <Film className="size-5 text-cinema-gold" />
-          <div>
-            <p className="text-sm font-medium text-white">Explorar tendencias</p>
-            <p className="text-xs text-muted-foreground">
-              Películas populares ahora
-            </p>
-          </div>
         </Link>
       </section>
 
