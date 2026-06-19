@@ -127,10 +127,11 @@ export async function getRecommendations(
     return [];
   }
 
+  // Construir contexto con reseñas + watchlist
   const reviewsContext = reviews
     .map(
       (r) =>
-        `- "${r.filmTitle}" (${r.filmYear ?? 'año desconocido'}) — puntuación: ${r.rating}/10 — reseña: "${r.content.slice(0, 200)}"`,
+        `- "${r.filmTitle}" (${r.filmYear ?? 'año desconocido'}) — puntuación: ${r.rating}/10 — reseña: "${r.content.slice(0, 300)}"`,
     )
     .join('\n');
 
@@ -138,35 +139,37 @@ export async function getRecommendations(
     .map((w) => `- "${w.filmTitle}" (${w.filmYear ?? 'año desconocido'})`)
     .join('\n');
 
-  const prompt = `Basándote en las siguientes reseñas y watchlist de un usuario de FilmVerse, recomendale películas que probablemente le gusten.
+  const prompt = `Analizá estas reseñas y watchlist de un usuario de cine, y recomendale películas que le puedan gustar.
 
-Reseñas del usuario:
-${reviewsContext}
+RESEÑAS DEL USUARIO:
+${reviewsContext || '(ninguna)'}
 
-Películas en su watchlist:
-${watchlistContext}
+WATCHLIST:
+${watchlistContext || '(vacía)'}
 
-Instrucciones:
-- Recomendá películas reales, conocidas y variadas en género.
-- No incluyas películas que el usuario ya haya reseñado o estén en su watchlist.
-- Devolvé un array JSON. Cada objeto debe tener:
-  - "title": string (título de la película)
-  - "reason": string (razón breve en español rioplatense)
-  - "matchPercentage": number (del 1 al 100)
-- Ejemplo: [{"title":"Inception","reason":"Te gustó...","matchPercentage":92}]
-- Si no encontrás suficientes candidatas, devolvé las que tengas (mínimo 1).
-- No incluyas texto fuera del JSON.`;
+INSTRUCCIONES:
+- Recomendá películas reales, variadas y conocidas.
+- NO incluyas películas que el usuario ya reseñó o tiene en watchlist.
+- Devolvé SOLO un array JSON. Cada objeto con: "title", "reason", "matchPercentage".
+- "reason": explicación breve en español rioplatense (1 oración).
+- "matchPercentage": número del 1 al 100.
+- Ejemplo válido: [{"title":"The Matrix","reason":"Te gustaron las de ciencia ficción","matchPercentage":85}]
+- Devolvé entre 1 y 5 recomendaciones.
+- No agregues texto fuera del JSON.`;
 
-  const recommendationSchema = {
-    type: 'array',
-    items: {
-      type: 'object',
-      properties: {
-        title: { type: 'string' },
-        reason: { type: 'string' },
-        matchPercentage: { type: 'number' },
-      },
-      required: ['title', 'reason', 'matchPercentage'],
+  const requestBody = {
+    system_instruction: {
+      parts: [
+        {
+          text: 'Sos un experto en cine. Respondé únicamente con JSON, sin texto adicional.',
+        },
+      ],
+    },
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generation_config: {
+      response_mime_type: 'application/json',
+      temperature: 0.9,
+      max_output_tokens: 1500,
     },
   };
 
@@ -174,22 +177,7 @@ Instrucciones:
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [
-            {
-              text: 'Sos un experto en cine que recomienda películas personalizadas en español rioplatense. Respondé SOLO con JSON válido.',
-            },
-          ],
-        },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generation_config: {
-          response_mime_type: 'application/json',
-          response_schema: recommendationSchema,
-          temperature: 0.7,
-          max_output_tokens: 1000,
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -201,33 +189,54 @@ Instrucciones:
     const data = (await response.json()) as {
       candidates?: Array<{
         content?: { parts?: Array<{ text?: string }> };
+        finishReason?: string;
       }>;
     };
 
+    console.log('[getRecommendations] Finish reason:', data.candidates?.[0]?.finishReason);
+
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    console.log('[getRecommendations] Raw response:', text);
+    console.log('[getRecommendations] Raw:', text);
+
     if (!text) {
-      console.warn('[getRecommendations] Empty response from Gemini');
+      console.warn('[getRecommendations] Empty response');
       return [];
     }
 
-    const parsed: unknown = JSON.parse(text);
+    // Intentar parsear como array directo
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      console.warn('[getRecommendations] JSON parse failed on raw text');
+      return [];
+    }
+
+    // Si es un objeto con una key que contiene un array, extraerlo
     if (!Array.isArray(parsed)) {
-      console.warn('[getRecommendations] Response is not an array:', typeof parsed, parsed);
-      return [];
+      const arrayKey = Object.values(parsed as Record<string, unknown>).find(Array.isArray);
+      if (arrayKey) {
+        parsed = arrayKey;
+      } else {
+        console.warn('[getRecommendations] Not an array and no array found in object:', parsed);
+        return [];
+      }
     }
 
-    console.log('[getRecommendations] Parsed items:', parsed.length);
+    const items = parsed as Array<Record<string, unknown>>;
+    console.log('[getRecommendations] Count:', items.length);
 
-    const recommendations: Recommendation[] = parsed.map((item: Record<string, unknown>) => ({
-      filmId: typeof item.filmId === 'number' ? item.filmId : 0,
-      title: String(item.title ?? ''),
-      reason: String(item.reason ?? ''),
-      matchPercentage:
-        typeof item.matchPercentage === 'number'
-          ? Math.min(100, Math.max(0, item.matchPercentage))
-          : undefined,
-    }));
+    const recommendations: Recommendation[] = items.map(
+      (item) => ({
+        filmId: typeof item.filmId === 'number' ? item.filmId : 0,
+        title: String(item.title ?? ''),
+        reason: String(item.reason ?? ''),
+        matchPercentage:
+          typeof item.matchPercentage === 'number'
+            ? Math.min(100, Math.max(0, Math.round(item.matchPercentage)))
+            : undefined,
+      }),
+    );
 
     return recommendations;
   } catch (error) {
