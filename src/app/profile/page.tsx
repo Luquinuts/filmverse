@@ -10,6 +10,7 @@ import {
   Star,
   Bookmark,
   MessageSquareText,
+  List,
   LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -22,8 +23,9 @@ import {
   type ReviewEntry,
   type WatchlistEntry,
 } from '@/lib/local-store';
+import { ListsTab } from '@/components/lists/lists-tab';
 
-type ProfileTab = 'reviews' | 'watchlist';
+type ProfileTab = 'reviews' | 'watchlist' | 'lists';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -121,7 +123,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-xl bg-white/5 p-4 text-center">
             <Star className="mx-auto mb-1 size-5 text-cinema-gold" />
             <p className="text-xl font-bold text-white">
@@ -144,6 +146,13 @@ export default function ProfilePage() {
               {stats.watchlistCount}
             </p>
             <p className="text-xs text-muted-foreground">Guardadas</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4 text-center">
+            <List className="mx-auto mb-1 size-5 text-cinema-gold" />
+            <p className="text-xl font-bold text-white">
+              {stats.listsCount}
+            </p>
+            <p className="text-xs text-muted-foreground">Listas</p>
           </div>
         </div>
       </div>
@@ -169,6 +178,16 @@ export default function ProfilePage() {
           }`}
         >
           Guardadas ({watchlist.length})
+        </button>
+        <button
+          onClick={() => setTab('lists')}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            tab === 'lists'
+              ? 'bg-cinema-gold text-black'
+              : 'text-muted-foreground hover:text-white'
+          }`}
+        >
+          Mis Listas
         </button>
       </div>
 
@@ -256,6 +275,8 @@ export default function ProfilePage() {
           )}
         </>
       )}
+
+      {tab === 'lists' && <ListsTab />}
     </div>
   );
 }
