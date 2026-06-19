@@ -138,7 +138,7 @@ export async function getRecommendations(
     .map((w) => `- "${w.filmTitle}" (${w.filmYear ?? 'año desconocido'})`)
     .join('\n');
 
-  const prompt = `Basándote en las siguientes reseñas y watchlist de un usuario de FilmVerse, recomendale EXACTAMENTE 5 películas que probablemente le gusten.
+  const prompt = `Basándote en las siguientes reseñas y watchlist de un usuario de FilmVerse, recomendale películas que probablemente le gusten.
 
 Reseñas del usuario:
 ${reviewsContext}
@@ -147,11 +147,28 @@ Películas en su watchlist:
 ${watchlistContext}
 
 Instrucciones:
-- Devolvé exactamente 5 películas en un array JSON.
-- Cada objeto debe tener: "title" (título de la película), "reason" (razón breve en español rioplatense de por qué le va a gustar), "matchPercentage" (número del 1 al 100 que estima cuánto le podría gustar).
-- No incluyas películas que ya haya reseñado o estén en su watchlist.
-- Recomendá películas reales y conocidas.
-- No incluyas texto adicional fuera del JSON.`;
+- Recomendá películas reales, conocidas y variadas en género.
+- No incluyas películas que el usuario ya haya reseñado o estén en su watchlist.
+- Devolvé un array JSON. Cada objeto debe tener:
+  - "title": string (título de la película)
+  - "reason": string (razón breve en español rioplatense)
+  - "matchPercentage": number (del 1 al 100)
+- Ejemplo: [{"title":"Inception","reason":"Te gustó...","matchPercentage":92}]
+- Si no encontrás suficientes candidatas, devolvé las que tengas (mínimo 1).
+- No incluyas texto fuera del JSON.`;
+
+  const recommendationSchema = {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        reason: { type: 'string' },
+        matchPercentage: { type: 'number' },
+      },
+      required: ['title', 'reason', 'matchPercentage'],
+    },
+  };
 
   try {
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
@@ -168,6 +185,7 @@ Instrucciones:
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generation_config: {
           response_mime_type: 'application/json',
+          response_schema: recommendationSchema,
           temperature: 0.7,
           max_output_tokens: 1000,
         },
@@ -187,10 +205,19 @@ Instrucciones:
     };
 
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return [];
+    console.log('[getRecommendations] Raw response:', text);
+    if (!text) {
+      console.warn('[getRecommendations] Empty response from Gemini');
+      return [];
+    }
 
     const parsed: unknown = JSON.parse(text);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) {
+      console.warn('[getRecommendations] Response is not an array:', typeof parsed, parsed);
+      return [];
+    }
+
+    console.log('[getRecommendations] Parsed items:', parsed.length);
 
     const recommendations: Recommendation[] = parsed.map((item: Record<string, unknown>) => ({
       filmId: typeof item.filmId === 'number' ? item.filmId : 0,
