@@ -4,6 +4,9 @@
  * Se usa exclusivamente del lado del servidor (Route Handlers).
  */
 
+import type { ReviewEntry, WatchlistEntry } from '@/lib/local-store';
+import type { Recommendation } from '@/lib/types';
+
 const GEMINI_API_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
@@ -110,5 +113,96 @@ export async function sendMessage(
   } catch (error) {
     console.error('[FilmIntelligence] Network error:', error);
     return 'Ups, hubo un error de conexión. Revisá tu conexión a internet e intentá de nuevo.';
+  }
+}
+
+export async function getRecommendations(
+  reviews: ReviewEntry[],
+  watchlist: WatchlistEntry[],
+): Promise<Recommendation[]> {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.warn('[getRecommendations] GEMINI_API_KEY no configurada');
+    return [];
+  }
+
+  const reviewsContext = reviews
+    .map(
+      (r) =>
+        `- "${r.filmTitle}" (${r.filmYear ?? 'año desconocido'}) — puntuación: ${r.rating}/10 — reseña: "${r.content.slice(0, 200)}"`,
+    )
+    .join('\n');
+
+  const watchlistContext = watchlist
+    .map((w) => `- "${w.filmTitle}" (${w.filmYear ?? 'año desconocido'})`)
+    .join('\n');
+
+  const prompt = `Basándote en las siguientes reseñas y watchlist de un usuario de FilmVerse, recomendale EXACTAMENTE 5 películas que probablemente le gusten.
+
+Reseñas del usuario:
+${reviewsContext}
+
+Películas en su watchlist:
+${watchlistContext}
+
+Instrucciones:
+- Devolvé exactamente 5 películas en un array JSON.
+- Cada objeto debe tener: "title" (título de la película), "reason" (razón breve en español rioplatense de por qué le va a gustar), "matchPercentage" (número del 1 al 100 que estima cuánto le podría gustar).
+- No incluyas películas que ya haya reseñado o estén en su watchlist.
+- Recomendá películas reales y conocidas.
+- No incluyas texto adicional fuera del JSON.`;
+
+  try {
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [
+            {
+              text: 'Sos un experto en cine que recomienda películas personalizadas en español rioplatense. Respondé SOLO con JSON válido.',
+            },
+          ],
+        },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generation_config: {
+          response_mime_type: 'application/json',
+          temperature: 0.7,
+          max_output_tokens: 1000,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[getRecommendations] Gemini error:', response.status, errorText);
+      return [];
+    }
+
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+      }>;
+    };
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return [];
+
+    const parsed: unknown = JSON.parse(text);
+    if (!Array.isArray(parsed)) return [];
+
+    const recommendations: Recommendation[] = parsed.map((item: Record<string, unknown>) => ({
+      filmId: typeof item.filmId === 'number' ? item.filmId : 0,
+      title: String(item.title ?? ''),
+      reason: String(item.reason ?? ''),
+      matchPercentage:
+        typeof item.matchPercentage === 'number' ? item.matchPercentage : undefined,
+    }));
+
+    return recommendations;
+  } catch (error) {
+    console.error('[getRecommendations] Error:', error);
+    return [];
   }
 }

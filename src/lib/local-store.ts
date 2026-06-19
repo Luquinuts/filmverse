@@ -7,6 +7,8 @@
 
 // ─── Tipos ───
 
+import type { Recommendation } from '@/lib/types';
+
 export interface ReviewEntry {
   id: string;
   filmId: number;
@@ -88,6 +90,7 @@ export function saveReview(review: Omit<ReviewEntry, 'id' | 'createdAt' | 'updat
   }
 
   setItem(REVIEWS_KEY, reviews);
+  clearRecommendationsCache();
   return entry;
 }
 
@@ -232,6 +235,39 @@ export function toggleWatchlist(entry: Omit<WatchlistEntry, 'addedAt'>): boolean
   list.push({ ...entry, addedAt: new Date().toISOString() });
   setItem(WATCHLIST_KEY, list);
   return true; // added
+}
+
+// ─── Recommendations Cache ───
+
+const RECOMMENDATIONS_CACHE_KEY = 'filmverse_recommendations';
+const RECOMMENDATIONS_TTL = 30 * 60 * 1000; // 30 min
+
+interface RecommendationsCache {
+  data: Recommendation[];
+  timestamp: number;
+}
+
+export function getCachedRecommendations(): Recommendation[] | null {
+  const cached = getItem<RecommendationsCache | null>(RECOMMENDATIONS_CACHE_KEY, null);
+  if (!cached) return null;
+  if (Date.now() - cached.timestamp > RECOMMENDATIONS_TTL) {
+    clearRecommendationsCache();
+    return null;
+  }
+  return cached.data;
+}
+
+export function setCachedRecommendations(data: Recommendation[]): void {
+  setItem(RECOMMENDATIONS_CACHE_KEY, { data, timestamp: Date.now() });
+}
+
+export function clearRecommendationsCache(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(RECOMMENDATIONS_CACHE_KEY);
+  } catch {
+    // ignorar
+  }
 }
 
 // ─── Stats ───

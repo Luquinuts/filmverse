@@ -13,9 +13,11 @@ import { createClient } from '@/lib/supabase/client';
 import {
   getUserReviews,
   getUserStats,
+  getWatchlist,
 } from '@/lib/local-store';
 import { ReviewCard } from '@/components/reviews/review-card';
 import { TrendingSection } from '@/components/home/trending-section';
+import { RecommendationsSection } from '@/components/home/recommendations-section';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -62,6 +64,7 @@ export default function DashboardPage() {
   const userId = 'mock-user-001';
   const stats = getUserStats(userId);
   const reviews = getUserReviews(userId).slice(0, 5);
+  const watchlist = getWatchlist();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -159,6 +162,11 @@ export default function DashboardPage() {
           Tendencias
         </h2>
         <TrendingSection />
+      </section>
+
+      {/* AI Recommendations */}
+      <section className="mt-10">
+        <RecommendationsSection reviews={reviews} watchlist={watchlist} />
       </section>
     </div>
   );

@@ -221,6 +221,7 @@ export interface Recommendation {
   filmId: number;
   title: string;
   reason: string;
+  matchPercentage?: number;
 }
 
 // ─── Tipos Mercado Pago ───
