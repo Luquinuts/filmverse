@@ -222,6 +222,7 @@ export interface Recommendation {
   title: string;
   reason: string;
   matchPercentage?: number;
+  posterPath?: string | null;
 }
 
 // ─── Tipos Mercado Pago ───

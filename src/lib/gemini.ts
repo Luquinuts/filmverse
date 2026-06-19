@@ -6,6 +6,7 @@
 
 import type { ReviewEntry, WatchlistEntry } from '@/lib/local-store';
 import type { Recommendation } from '@/lib/types';
+import { TmdbClient } from '@/lib/tmdb';
 
 const GEMINI_API_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -228,15 +229,35 @@ INSTRUCCIONES:
     const items = parsed as Array<Record<string, unknown>>;
     console.log('[getRecommendations] Count:', items.length);
 
-    const recommendations: Recommendation[] = items.map(
-      (item) => ({
-        filmId: typeof item.filmId === 'number' ? item.filmId : 0,
-        title: String(item.title ?? ''),
-        reason: String(item.reason ?? ''),
-        matchPercentage:
-          typeof item.matchPercentage === 'number'
-            ? Math.min(100, Math.max(0, Math.round(item.matchPercentage)))
-            : undefined,
+    // Buscar cada película en TMDB para obtener poster e ID real
+    const tmdb = new TmdbClient();
+
+    const recommendations: Recommendation[] = await Promise.all(
+      items.map(async (item) => {
+        const title = String(item.title ?? '');
+        let filmId = typeof item.filmId === 'number' ? item.filmId : 0;
+        let posterPath: string | null = null;
+
+        try {
+          const results = await tmdb.searchMovies(title);
+          if (results.length > 0) {
+            filmId = results[0].id;
+            posterPath = results[0].poster_path;
+          }
+        } catch {
+          // Si falla la búsqueda, usamos los valores por defecto
+        }
+
+        return {
+          filmId,
+          title,
+          reason: String(item.reason ?? ''),
+          matchPercentage:
+            typeof item.matchPercentage === 'number'
+              ? Math.min(100, Math.max(0, Math.round(item.matchPercentage)))
+              : undefined,
+          posterPath,
+        };
       }),
     );
 

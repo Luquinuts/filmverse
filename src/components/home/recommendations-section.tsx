@@ -137,11 +137,20 @@ export function RecommendationsSection({ reviews, watchlist }: Props) {
               key={`${rec.title}-${i}`}
               className="glass glow-amber group flex flex-col overflow-hidden rounded-xl transition-all duration-300 hover:scale-105"
             >
-              {/* Poster placeholder gradient */}
+              {/* Poster */}
               <div className="relative aspect-[2/3] w-full overflow-hidden bg-gradient-to-br from-cinema-gold/20 via-cinema-amber/10 to-purple-900/30">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Film className="size-10 text-white/20" />
-                </div>
+                {rec.posterPath ? (
+                  <img
+                    src={`https://image.tmdb.org/t/p/w342${rec.posterPath}`}
+                    alt={rec.title}
+                    className="size-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Film className="size-10 text-white/20" />
+                  </div>
+                )}
               </div>
 
               {/* Card body */}
