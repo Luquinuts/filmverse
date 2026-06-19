@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Film, RotateCcw, Sparkles } from 'lucide-react';
 import type { ReviewEntry, WatchlistEntry } from '@/lib/local-store';
 import type { Recommendation } from '@/lib/types';
@@ -133,8 +134,9 @@ export function RecommendationsSection({ reviews, watchlist }: Props) {
       {!loading && !error && recommendations.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {recommendations.map((rec, i) => (
-            <div
+            <Link
               key={`${rec.title}-${i}`}
+              href={rec.filmId ? `/film/${rec.filmId}` : '#'}
               className="glass glow-amber group flex flex-col overflow-hidden rounded-xl transition-all duration-300 hover:scale-105"
             >
               {/* Poster */}
@@ -169,7 +171,7 @@ export function RecommendationsSection({ reviews, watchlist }: Props) {
                   {rec.reason}
                 </p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
