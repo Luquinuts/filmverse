@@ -3,6 +3,7 @@ import { Inter, Geist } from 'next/font/google';
 import './globals.css';
 import { cn } from "@/lib/utils";
 import { Navbar } from '@/components/layout/navbar';
+import { FilmIntelligence } from '@/components/ai/film-intelligence';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body className="bg-background text-foreground">
         <Navbar />
         <main className="pt-16">{children}</main>
+        <FilmIntelligence />
       </body>
     </html>
   );

@@ -1,216 +1,109 @@
-// ─────────────────────────────────────────────
-// FilmVerse — Gemini API Client (Stub)
-// ─────────────────────────────────────────────
-
-import type { UserContext, Recommendation } from '@/lib/types';
-
-const GEMINI_BASE_URL =
-  'https://generativelanguage.googleapis.com/v1beta';
-
 /**
- * Mensaje en una conversación con Gemini.
+ * FilmIntelligence — Cliente para la API de Google Gemini.
+ *
+ * Se usa exclusivamente del lado del servidor (Route Handlers).
+ * Si no hay API key configurada, devuelve un mensaje de error amigable.
  */
-interface GeminiMessage {
+
+const GEMINI_API_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+const SYSTEM_PROMPT = `
+Sos FilmIntelligence, un asistente de IA especializado en cine, parte de la plataforma FilmVerse.
+Tus funciones principales:
+
+1. RECOMENDAR películas basadas en gustos, géneros, directores o películas similares.
+2. RESPONDER preguntas sobre películas (sinopsis, reparto, datos curiosos, etc.).
+3. AYUDAR a los usuarios a descubrir contenido en FilmVerse.
+4. MANTENER un tono amable, cercano y entusiasta del cine. Usá español rioplatense (argentino).
+5. SER CONCISO — respuestas de 2-3 párrafos como máximo, salvo que el usuario pida más detalle.
+6. NO inventar datos falsos. Si no sabés algo, decilo.
+7. NO mencionar que sos una IA o que estás usando Gemini. Actuá como un experto en cine.
+
+Cuando recomiendes películas, mencioná el título y una razón breve.
+`.trim();
+
+export interface ChatMessage {
   role: 'user' | 'model';
-  content: string;
+  text: string;
+}
+
+export interface ChatContext {
+  filmTitle?: string;
+  filmYear?: number;
+  username?: string;
 }
 
 /**
- * Error específico de la API de Gemini.
+ * Envía un mensaje a Gemini y devuelve la respuesta.
+ * Si no hay API key, devuelve un mensaje de error amigable.
  */
-export class GeminiApiError extends Error {
-  constructor(
-    message: string,
-    public statusCode?: number,
-  ) {
-    super(message);
-    this.name = 'GeminiApiError';
-  }
-}
+export async function sendMessage(
+  message: string,
+  history: ChatMessage[],
+  context?: ChatContext,
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
 
-/**
- * Sesión de chat con Gemini que mantiene el historial de conversación.
- * Preparada para migrar a streaming cuando se implemente en la UI.
- */
-export class ChatSession {
-  private history: GeminiMessage[] = [];
-  private readonly apiKey: string;
-
-  constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY ?? '';
-
-    if (!this.apiKey) {
-      console.warn(
-        '[Gemini] No se configuró GEMINI_API_KEY. ' +
-          'Las llamadas a la API fallarán.',
-      );
-    }
+  if (!apiKey) {
+    return '🔌 FilmIntelligence no está conectado. Configurá GEMINI_API_KEY en el panel de Vercel o en .env.local para activarme.';
   }
 
-  /**
-   * Envía un mensaje al modelo y devuelve la respuesta.
-   */
-  async sendMessage(message: string): Promise<string> {
-    this.history.push({ role: 'user', content: message });
+  // Construir el context para el prompt
+  let contextBlock = '';
+  if (context?.username) {
+    contextBlock += `El usuario se llama ${context.username}. `;
+  }
+  if (context?.filmTitle) {
+    contextBlock += `Está viendo "${context.filmTitle}" (${context.filmYear ?? 'año desconocido'}). `;
+  }
 
-    try {
-      const response = await fetch(
-        `${GEMINI_BASE_URL}/models/gemini-pro:generateContent?key=${this.apiKey}`,
+  // Convertir historial al formato de Gemini
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [
+    {
+      role: 'user',
+      parts: [{ text: `[System] ${SYSTEM_PROMPT}\n\n[Context] ${contextBlock}` }],
+    },
+    {
+      role: 'model',
+      parts: [
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: this.history.map((msg) => ({
-                  text: `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content}`,
-                })),
-              },
-            ],
-          }),
+          text: 'Entendido. Soy FilmIntelligence, el asistente de cine de FilmVerse. ¡Mandame cualquier consulta!',
         },
-      );
+      ],
+    },
+    ...history.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text }],
+    })),
+    { role: 'user', parts: [{ text: message }] },
+  ];
 
-      if (!response.ok) {
-        throw new GeminiApiError(
-          `Gemini API error: ${response.statusText}`,
-          response.status,
-        );
-      }
-
-      const data = await response.json();
-      const reply: string =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
-      this.history.push({ role: 'model', content: reply });
-      return reply;
-    } catch (error) {
-      if (error instanceof GeminiApiError) throw error;
-      throw new GeminiApiError(
-        `Error de red al llamar a Gemini: ${error}`,
-      );
-    }
-  }
-
-  /**
-   * Obtiene una recomendación de película basada en el contexto del usuario.
-   */
-  async getRecommendation(
-    userContext: UserContext,
-  ): Promise<Recommendation> {
-    const prompt = this.buildRecommendationPrompt(userContext);
-    const reply = await this.sendMessage(prompt);
-
-    // Intenta parsear una recomendación estructurada de la respuesta
-    return this.parseRecommendation(reply);
-  }
-
-  /**
-   * Interfaz de streaming — preparada para implementación futura.
-   * Devuelve un AsyncGenerator que emitirá tokens a medida que
-   * Gemini los genera.
-   */
-  async *sendMessageStream(
-    message: string,
-  ): AsyncGenerator<string, void, unknown> {
-    this.history.push({ role: 'user', content: message });
-
-    const response = await fetch(
-      `${GEMINI_BASE_URL}/models/gemini-pro:streamGenerateContent?key=${this.apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: message }],
-            },
-          ],
-        }),
-      },
-    );
+  try {
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents }),
+    });
 
     if (!response.ok) {
-      throw new GeminiApiError(
-        `Gemini streaming error: ${response.statusText}`,
-        response.status,
-      );
+      const errorText = await response.text();
+      console.error('[FilmIntelligence] Gemini API error:', response.status, errorText);
+      return 'Ups, hubo un problema al consultar a FilmIntelligence. Intentá de nuevo en un momento.';
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) return;
-
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const text =
-                parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) yield text;
-            } catch {
-              // Ignorar líneas que no se puedan parsear
-            }
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock();
-    }
-  }
-
-  /**
-   * Construye el prompt para obtener una recomendación personalizada.
-   */
-  private buildRecommendationPrompt(context: UserContext): string {
-    return (
-      `Actúa como un recomendador de cine experto. ` +
-      `Basándote en el siguiente perfil de usuario, recomiéndame UNA sola película ` +
-      `que creas que le va a encantar. Devuélveme SOLO un objeto JSON con ` +
-      `"filmId" (0 si no conoces el ID), "title" y "reason" (en español).\n\n` +
-      `Perfil del usuario:\n` +
-      `- Géneros vistos: ${context.watchedGenres?.join(', ') ?? 'desconocidos'}\n` +
-      `- Películas favoritas: ${context.favoriteFilms?.join(', ') ?? 'desconocidas'}\n` +
-      `- Actividad reciente: ${context.recentActivity?.join(', ') ?? 'desconocida'}`
-    );
-  }
-
-  /**
-   * Intenta parsear la respuesta de Gemini como una recomendación estructurada.
-   */
-  private parseRecommendation(reply: string): Recommendation {
-    try {
-      // Intenta extraer JSON de la respuesta
-      const jsonMatch = reply.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]) as Recommendation;
-      }
-    } catch {
-      // Si falla el parseo, devuelve una recomendación con la respuesta cruda
-    }
-
-    return {
-      filmId: 0,
-      title: 'Recomendación personalizada',
-      reason: reply,
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
+      }>;
     };
-  }
 
-  /**
-   * Devuelve el historial de la conversación.
-   */
-  getHistory(): GeminiMessage[] {
-    return [...this.history];
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    return text ?? 'No entendí bien la consulta. ¿Podés reformularla?';
+  } catch (error) {
+    console.error('[FilmIntelligence] Network error:', error);
+    return 'Ups, hubo un error de conexión. Revisá tu conexión a internet e intentá de nuevo.';
   }
 }
