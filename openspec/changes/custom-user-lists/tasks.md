@@ -24,29 +24,29 @@ Chain strategy: pending
 
 ## Phase 1: Data Layer — `src/lib/local-store.ts`
 
-- [ ] 1.1 Add `UserCustomList` and `UserListFilm` interfaces after existing `WatchlistEntry` block — `id`, `name`, `description`, `createdAt` / `updatedAt` (ISO strings) for lists; `listId`, `filmId`, `filmTitle`, `filmPoster`, `filmYear`, `addedAt` for films
-- [ ] 1.2 Add `CUSTOM_LISTS_KEY = 'filmverse_custom_lists'` constant alongside existing `WATCHLIST_KEY`
-- [ ] 1.3 Implement `getLists(): UserCustomList[]` — reads from localStorage, returns sorted by `createdAt` desc
-- [ ] 1.4 Implement `getListById(id: string): { list: UserCustomList; films: UserListFilm[] } | null` — returns combined entry or null
-- [ ] 1.5 Implement `createList(name: string, description?: string): UserCustomList` — generates `crypto.randomUUID()`, ISO timestamps, writes store, returns the new list
-- [ ] 1.6 Implement `deleteList(id: string): void` — removes entry + cascade deletes all films under that key
-- [ ] 1.7 Implement `renameList(id: string, name: string): void` — updates name + `updatedAt`
-- [ ] 1.8 Implement `addFilmToList(listId: string, film: Omit<UserListFilm, 'listId' | 'addedAt'>): void` — idempotent: skip if `filmId` already in that list's films array
-- [ ] 1.9 Implement `removeFilmFromList(listId: string, filmId: number): void` — filters entry.films, writes store
-- [ ] 1.10 Implement `getListFilms(listId: string): UserListFilm[]` — returns films array or `[]`
-- [ ] 1.11 Implement `isFilmInList(listId: string, filmId: number): boolean` — checks if filmId exists in entry.films
-- [ ] 1.12 Update `getUserStats()` — add `listsCount` field via `Object.keys(getItem(CUSTOM_LISTS_KEY, {})).length`
+- [x] 1.1 Add `UserCustomList` and `UserListFilm` interfaces after existing `WatchlistEntry` block — `id`, `name`, `description`, `createdAt` / `updatedAt` (ISO strings) for lists; `listId`, `filmId`, `filmTitle`, `filmPoster`, `filmYear`, `addedAt` for films
+- [x] 1.2 Add `CUSTOM_LISTS_KEY = 'filmverse_custom_lists'` constant alongside existing `WATCHLIST_KEY`
+- [x] 1.3 Implement `getLists(): UserCustomList[]` — reads from localStorage, returns sorted by `createdAt` desc
+- [x] 1.4 Implement `getListById(id: string): { list: UserCustomList; films: UserListFilm[] } | null` — returns combined entry or null
+- [x] 1.5 Implement `createList(name: string, description?: string): UserCustomList` — generates `crypto.randomUUID()`, ISO timestamps, writes store, returns the new list
+- [x] 1.6 Implement `deleteList(id: string): void` — removes entry + cascade deletes all films under that key
+- [x] 1.7 Implement `renameList(id: string, name: string): void` — updates name + `updatedAt`
+- [x] 1.8 Implement `addFilmToList(listId: string, film: Omit<UserListFilm, 'listId' | 'addedAt'>): void` — idempotent: skip if `filmId` already in that list's films array
+- [x] 1.9 Implement `removeFilmFromList(listId: string, filmId: number): void` — filters entry.films, writes store
+- [x] 1.10 Implement `getListFilms(listId: string): UserListFilm[]` — returns films array or `[]`
+- [x] 1.11 Implement `isFilmInList(listId: string, filmId: number): boolean` — checks if filmId exists in entry.films
+- [x] 1.12 Update `getUserStats()` — add `listsCount` field via `Object.keys(getItem(CUSTOM_LISTS_KEY, {})).length`
 
 ## Phase 2: Shared Components (`src/components/lists/`)
 
 - [ ] 2.1 Create `src/components/lists/list-card.tsx` — card component that receives `list: UserCustomList & { filmCount: number }`. Shows gradient placeholder (no single poster), name, film count; wraps in `<Link href="/lists/[id]">`
 - [ ] 2.2 Create `src/components/lists/lists-tab.tsx` — profile tab content: calls `getLists()`, renders responsive grid (2→3→4 cols) of `ListCard` components. Empty state: icon + "Todavía no creaste ninguna lista"
-- [ ] 2.3 Create `src/components/lists/add-to-list-dialog.tsx` — base-ui `<Dialog.Popup>` with checkboxes for each existing list (checked = `isFilmInList`), toggle calls `addFilmToList`/`removeFilmFromList` directly. Bottom section: text input + "Crear lista nueva" button (disabled if empty/whitespace). On create: calls `createList(name)` then `addFilmToList(id, film)`. Props: `open`, `onClose`, `film: { filmId, filmTitle, filmPoster, filmYear }`
+- [x] 2.3 Create `src/components/lists/add-to-list-dialog.tsx` — base-ui `<Dialog.Popup>` with checkboxes for each existing list (checked = `isFilmInList`), toggle calls `addFilmToList`/`removeFilmFromList` directly. Bottom section: text input + "Crear lista nueva" button (disabled if empty/whitespace). On create: calls `createList(name)` then `addFilmToList(id, film)`. Props: `open`, `onClose`, `film: { filmId, filmTitle, filmPoster, filmYear }`
 
 ## Phase 3: Page Wiring
 
 - [ ] 3.1 `src/app/profile/page.tsx` — add `'lists'` to `ProfileTab` union type; add third tab button "Mis Listas" in tab bar; render `ListsTab` when `tab === 'lists'`; import `ListsTab` and `getLists` from local-store; update stats grid to show `listsCount` as fourth stat card
-- [ ] 3.2 `src/app/film/[id]/page.tsx` — import `AddToListDialog`; import `getLists`; add `listDialogOpen` state + `toggle` handler; render "Agregar a lista..." button below the watchlist button (gated behind `userId &&`); render `<AddToListDialog open={listDialogOpen} onClose={() => setListDialogOpen(false)} film={...} />`
+- [x] 3.2 `src/app/film/[id]/page.tsx` — import `AddToListDialog`; import `getLists`; add `listDialogOpen` state + `toggle` handler; render "Agregar a lista..." button below the watchlist button (gated behind `userId &&`); render `<AddToListDialog open={listDialogOpen} onClose={() => setListDialogOpen(false)} film={...} />`
 
 ## Phase 4: New Route — `/lists/[listId]`
 
