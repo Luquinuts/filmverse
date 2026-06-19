@@ -12,11 +12,12 @@ import {
 } from '@/lib/local-store';
 
 interface Props {
+  userId: string;
   reviews: ReviewEntry[];
   watchlist: WatchlistEntry[];
 }
 
-export function RecommendationsSection({ reviews, watchlist }: Props) {
+export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,10 +27,11 @@ export function RecommendationsSection({ reviews, watchlist }: Props) {
     setError(null);
 
     try {
-      const res = await fetch('/api/ai/recommend', {
+      // CU 32 — Reporte diario de recomendaciones
+      const res = await fetch('/api/ai/recommend/daily', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviews, watchlist }),
+        body: JSON.stringify({ userId, reviews, watchlist }),
       });
 
       if (!res.ok) {
@@ -37,9 +39,12 @@ export function RecommendationsSection({ reviews, watchlist }: Props) {
         throw new Error(data.error ?? 'Error desconocido');
       }
 
-      const data = (await res.json()) as { recommendations: Recommendation[] };
+      const data = (await res.json()) as {
+        recommendations: Recommendation[];
+        date: string;
+      };
       setRecommendations(data.recommendations);
-      setCachedRecommendations(data.recommendations);
+      setCachedRecommendations(data.recommendations, data.date);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Error desconocido';
@@ -47,7 +52,7 @@ export function RecommendationsSection({ reviews, watchlist }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [reviews, watchlist]);
+  }, [userId, reviews, watchlist]);
 
   useEffect(() => {
     if (reviews.length === 0) return;

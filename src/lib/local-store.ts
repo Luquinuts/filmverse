@@ -237,28 +237,44 @@ export function toggleWatchlist(entry: Omit<WatchlistEntry, 'addedAt'>): boolean
   return true; // added
 }
 
-// ─── Recommendations Cache ───
+// ─── Recommendations Cache (CU 32 — Reporte Diario) ───
+// El cache expira al cambiar de día (UTC-3), no por tiempo transcurrido.
 
 const RECOMMENDATIONS_CACHE_KEY = 'filmverse_recommendations';
-const RECOMMENDATIONS_TTL = 30 * 60 * 1000; // 30 min
 
 interface RecommendationsCache {
   data: Recommendation[];
-  timestamp: number;
+  date: string; // YYYY-MM-DD en UTC-3
+}
+
+/**
+ * Obtiene la fecha actual en UTC-3 como YYYY-MM-DD.
+ */
+function getTodayArgentina(): string {
+  if (typeof window === 'undefined') return '';
+  const now = new Date();
+  const argentina = new Date(
+    now.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }),
+  );
+  return argentina.toISOString().split('T')[0];
 }
 
 export function getCachedRecommendations(): Recommendation[] | null {
   const cached = getItem<RecommendationsCache | null>(RECOMMENDATIONS_CACHE_KEY, null);
   if (!cached) return null;
-  if (Date.now() - cached.timestamp > RECOMMENDATIONS_TTL) {
+  // Si el cache es de un día anterior, expira
+  if (cached.date !== getTodayArgentina()) {
     clearRecommendationsCache();
     return null;
   }
   return cached.data;
 }
 
-export function setCachedRecommendations(data: Recommendation[]): void {
-  setItem(RECOMMENDATIONS_CACHE_KEY, { data, timestamp: Date.now() });
+export function setCachedRecommendations(data: Recommendation[], date?: string): void {
+  setItem(RECOMMENDATIONS_CACHE_KEY, {
+    data,
+    date: date ?? getTodayArgentina(),
+  });
 }
 
 export function clearRecommendationsCache(): void {

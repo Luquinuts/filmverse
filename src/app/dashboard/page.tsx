@@ -166,7 +166,7 @@ export default function DashboardPage() {
 
       {/* AI Recommendations */}
       <section className="mt-10">
-        <RecommendationsSection reviews={reviews} watchlist={watchlist} />
+        <RecommendationsSection userId={userId} reviews={reviews} watchlist={watchlist} />
       </section>
     </div>
   );
