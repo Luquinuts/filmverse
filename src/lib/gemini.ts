@@ -202,10 +202,13 @@ INSTRUCCIONES:
       return [];
     }
 
+    // Strip markdown code block wrapping if present (Gemini sometimes returns ```json ... ```)
+    const cleaned = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
+
     // Intentar parsear como array directo
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(cleaned);
     } catch {
       console.warn('[getRecommendations] JSON parse failed on raw text');
       return [];
