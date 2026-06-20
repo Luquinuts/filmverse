@@ -1,8 +1,14 @@
 /**
+ * @deprecated Usar supabase/store.ts en su lugar.
+ *
  * local-store — Persistencia en localStorage para desarrollo sin backend.
  *
  * Store de reseñas, ratings, y watchlist.
- * Cuando Supabase esté conectado, migrar a llamadas a la API.
+ * Mantenido temporalmente para el script de migración de datos y rollback.
+ * NO agregar nuevas funcionalidades acá — todo nuevo código debe usar
+ * src/lib/supabase/store.ts.
+ *
+ * @see src/lib/supabase/store.ts
  */
 
 // ─── Tipos ───
