@@ -36,10 +36,12 @@ export function AddToListDialog({ open, onClose, userId, film }: AddToListDialog
   // Refresh lists from Supabase when dialog opens
   useEffect(() => {
     if (!open) return;
+    let ignore = false;
 
     async function load() {
       try {
         const allLists = await getLists(supabase, userId);
+        if (ignore) return;
         setLists(allLists);
         setNewListName('');
 
@@ -50,12 +52,15 @@ export function AddToListDialog({ open, onClose, userId, film }: AddToListDialog
             return exists ? list.id : null;
           }),
         );
+        if (ignore) return;
         setFilmInListIds(new Set(checks.filter(Boolean) as string[]));
       } catch (err) {
+        if (ignore) return;
         console.error('[add-to-list] load lists:', err);
       }
     }
     load();
+    return () => { ignore = true; };
   }, [open, supabase, userId, film.filmId]);
 
   const handleToggle = async (listId: string) => {

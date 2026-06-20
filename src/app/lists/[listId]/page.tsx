@@ -26,6 +26,7 @@ export default function ListDetailPage({
   const [films, setFilms] = useState<ListFilmRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -53,7 +54,7 @@ export default function ListDetailPage({
         setFilms(entry.films);
       } catch (err) {
         console.error('[list-detail] load:', err);
-        setNotFound(true);
+        setError('No pudimos cargar esta lista. Intentalo de nuevo.');
       } finally {
         setLoading(false);
       }
@@ -100,6 +101,20 @@ export default function ListDetailPage({
               <div key={i} className="aspect-[2/3] w-full rounded-xl bg-glass-bg" />
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error ──
+  if (error) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-12">
+        <div className="py-16 text-center">
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="rounded-lg bg-cinema-gold px-5 py-2 text-sm font-semibold text-black">
+            Reintentar
+          </button>
         </div>
       </div>
     );

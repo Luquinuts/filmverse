@@ -251,6 +251,27 @@ export async function getLists(
   return data ?? [];
 }
 
+export async function getListFilmCounts(
+  client: SupabaseClient,
+  userId: string,
+): Promise<Record<string, number>> {
+  const { data, error } = await client
+    .from('custom_lists')
+    .select('id, list_films(id)')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[store] getListFilmCounts:', error);
+    throw error;
+  }
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    counts[row.id] = (row as any).list_films?.length ?? 0;
+  }
+  return counts;
+}
+
 export async function getListById(
   client: SupabaseClient,
   listId: string,

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { List } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { getLists, getListById } from '@/lib/supabase/store';
+import { getLists, getListFilmCounts } from '@/lib/supabase/store';
 import type { CustomListRow } from '@/lib/types';
 import { ListCard } from '@/components/lists/list-card';
 
@@ -21,24 +21,25 @@ export function ListsTab({ userId }: ListsTabProps) {
   const [lists, setLists] = useState<ListWithCount[]>([]);
 
   useEffect(() => {
+    let ignore = false;
     async function loadLists() {
       try {
         const allLists = await getLists(supabase, userId);
-        const withCounts: ListWithCount[] = await Promise.all(
-          allLists.map(async (list) => {
-            const entry = await getListById(supabase, list.id);
-            return {
-              ...list,
-              filmCount: entry?.films.length ?? 0,
-            };
-          }),
-        );
+        if (ignore) return;
+        const counts = await getListFilmCounts(supabase, userId);
+        if (ignore) return;
+        const withCounts: ListWithCount[] = allLists.map((list) => ({
+          ...list,
+          filmCount: counts[list.id] ?? 0,
+        }));
         setLists(withCounts);
       } catch (err) {
+        if (ignore) return;
         console.error('[lists-tab] load lists:', err);
       }
     }
     loadLists();
+    return () => { ignore = true; };
   }, [supabase, userId]);
 
   if (lists.length === 0) {

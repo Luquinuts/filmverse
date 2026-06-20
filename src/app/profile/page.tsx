@@ -43,7 +43,6 @@ type ProfileTab = 'reviews' | 'watchlist' | 'lists';
 export default function ProfilePage() {
   const router = useRouter();
   const supabase = useRef(createClient()).current;
-  const authChecked = useRef(false);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
@@ -55,11 +54,9 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<ProfileStats>(INITIAL_STATS);
 
   useEffect(() => {
-    if (authChecked.current) return;
-    authChecked.current = true;
-
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
+        setLoading(false);
         router.push('/login?redirect=/profile');
         return;
       }
@@ -72,20 +69,22 @@ export default function ProfilePage() {
       );
       setEmail(data.user.email ?? '');
 
-      try {
-        const [reviewsData, watchlistData, statsData] = await Promise.all([
-          getReviews(supabase, uid),
-          getWatchlist(supabase, uid),
-          getUserStats(supabase, uid),
-        ]);
-        setReviews(reviewsData);
-        setWatchlist(watchlistData);
-        setStats(statsData);
-      } catch (err) {
-        console.error('[profile] load data:', err);
-      } finally {
-        setLoading(false);
-      }
+      const [reviewsResult, watchlistResult, statsResult] = await Promise.allSettled([
+        getReviews(supabase, uid),
+        getWatchlist(supabase, uid),
+        getUserStats(supabase, uid),
+      ]);
+
+      if (reviewsResult.status === 'fulfilled') setReviews(reviewsResult.value);
+      else console.error('[profile] reviews:', reviewsResult.reason);
+
+      if (watchlistResult.status === 'fulfilled') setWatchlist(watchlistResult.value);
+      else console.error('[profile] watchlist:', watchlistResult.reason);
+
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+      else console.error('[profile] stats:', statsResult.reason);
+
+      setLoading(false);
     }).catch((err) => {
       console.error('[profile] auth:', err);
       setLoading(false);
