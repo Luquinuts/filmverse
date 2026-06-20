@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Trash2, List, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import {
   getListById,
   deleteList,
   removeFilmFromList,
-  type UserCustomList,
-  type UserListFilm,
-} from '@/lib/local-store';
+} from '@/lib/supabase/store';
+import type { CustomListRow, ListFilmRow } from '@/lib/types';
 
 export default function ListDetailPage({
   params,
@@ -19,44 +19,73 @@ export default function ListDetailPage({
   params: Promise<{ listId: string }>;
 }) {
   const router = useRouter();
+  const supabase = useRef(createClient()).current;
+  const [userId, setUserId] = useState<string | null>(null);
   const [listId, setListId] = useState<string | null>(null);
-  const [list, setList] = useState<UserCustomList | null>(null);
-  const [films, setFilms] = useState<UserListFilm[]>([]);
+  const [list, setList] = useState<CustomListRow | null>(null);
+  const [films, setFilms] = useState<ListFilmRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    params.then(({ listId: id }) => {
-      setListId(id);
-      const entry = getListById(id);
-      if (!entry) {
-        setNotFound(true);
-        setLoading(false);
-        return;
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserId(data.user.id);
       }
-      setList(entry.list);
-      setFilms(entry.films);
-      setLoading(false);
+    }).catch((err) => {
+      console.error('[list-detail] auth:', err);
     });
-  }, [params]);
+  }, [supabase]);
 
-  const handleDelete = useCallback(() => {
+  useEffect(() => {
+    let ignore = false;
+    params.then(async ({ listId: id }) => {
+      if (ignore) return;
+      setListId(id);
+      try {
+        const entry = await getListById(supabase, id);
+        if (!entry) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setList(entry.list);
+        setFilms(entry.films);
+      } catch (err) {
+        console.error('[list-detail] load:', err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    });
+    return () => { ignore = true; };
+  }, [params, supabase]);
+
+  const handleDelete = useCallback(async () => {
     if (!listId) return;
     const confirmed = window.confirm(
       '¿Estás seguro de eliminar esta lista?',
     );
     if (!confirmed) return;
-    deleteList(listId);
-    router.push('/profile');
-  }, [listId, router]);
+    try {
+      await deleteList(supabase, listId);
+      router.push('/profile');
+    } catch (err) {
+      console.error('[list-detail] delete:', err);
+    }
+  }, [listId, router, supabase]);
 
   const handleRemoveFilm = useCallback(
-    (filmId: number) => {
+    async (filmId: number) => {
       if (!listId) return;
-      removeFilmFromList(listId, filmId);
-      setFilms((prev) => prev.filter((f) => f.filmId !== filmId));
+      try {
+        await removeFilmFromList(supabase, listId, filmId);
+        setFilms((prev) => prev.filter((f) => f.film_id !== filmId));
+      } catch (err) {
+        console.error('[list-detail] remove film:', err);
+      }
     },
-    [listId],
+    [listId, supabase],
   );
 
   // ── Loading ──
@@ -143,39 +172,39 @@ export default function ListDetailPage({
       {films.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {films.map((entry) => (
-            <div key={entry.filmId} className="group relative">
+            <div key={entry.film_id} className="group relative">
               <Link
-                href={`/film/${entry.filmId}`}
+                href={`/film/${entry.film_id}`}
                 className="block"
               >
                 <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-glass-bg">
-                  {entry.filmPoster ? (
+                  {entry.film_poster ? (
                     <Image
-                      src={`https://image.tmdb.org/t/p/w342${entry.filmPoster}`}
-                      alt={entry.filmTitle}
+                      src={`https://image.tmdb.org/t/p/w342${entry.film_poster}`}
+                      alt={entry.film_title}
                       fill
                       className="object-cover transition-transform group-hover:scale-105"
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                     />
                   ) : (
                     <div className="flex size-full items-center justify-center text-muted-foreground text-xs p-2 text-center">
-                      {entry.filmTitle}
+                      {entry.film_title}
                     </div>
                   )}
                 </div>
                 <p className="mt-2 text-sm text-white truncate group-hover:text-cinema-gold transition-colors">
-                  {entry.filmTitle}
+                  {entry.film_title}
                 </p>
-                {entry.filmYear && (
+                {entry.film_year && (
                   <p className="text-xs text-muted-foreground">
-                    {entry.filmYear}
+                    {entry.film_year}
                   </p>
                 )}
               </Link>
 
               {/* Remove button overlay */}
               <button
-                onClick={() => handleRemoveFilm(entry.filmId)}
+                onClick={() => handleRemoveFilm(entry.film_id)}
                 className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white/80 opacity-0 transition-opacity hover:bg-red-500/70 hover:text-white group-hover:opacity-100"
                 title="Quitar de la lista"
               >

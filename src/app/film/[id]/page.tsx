@@ -281,6 +281,7 @@ export default function FilmDetailPage({
                 <AddToListDialog
                   open={listDialogOpen}
                   onClose={() => setListDialogOpen(false)}
+                  userId={userId}
                   film={{
                     filmId: movie.id,
                     filmTitle: movie.title,

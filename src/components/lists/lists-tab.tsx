@@ -1,26 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { List } from 'lucide-react';
 import Link from 'next/link';
-import { getLists, getListFilms, type UserCustomList } from '@/lib/local-store';
+import { createClient } from '@/lib/supabase/client';
+import { getLists, getListById } from '@/lib/supabase/store';
+import type { CustomListRow } from '@/lib/types';
 import { ListCard } from '@/components/lists/list-card';
 
-interface ListWithCount extends UserCustomList {
+interface ListWithCount extends CustomListRow {
   filmCount: number;
 }
 
-export function ListsTab() {
+interface ListsTabProps {
+  userId: string;
+}
+
+export function ListsTab({ userId }: ListsTabProps) {
+  const supabase = useRef(createClient()).current;
   const [lists, setLists] = useState<ListWithCount[]>([]);
 
   useEffect(() => {
-    const allLists = getLists();
-    const withCounts: ListWithCount[] = allLists.map((list) => ({
-      ...list,
-      filmCount: getListFilms(list.id).length,
-    }));
-    setLists(withCounts);
-  }, []);
+    async function loadLists() {
+      try {
+        const allLists = await getLists(supabase, userId);
+        const withCounts: ListWithCount[] = await Promise.all(
+          allLists.map(async (list) => {
+            const entry = await getListById(supabase, list.id);
+            return {
+              ...list,
+              filmCount: entry?.films.length ?? 0,
+            };
+          }),
+        );
+        setLists(withCounts);
+      } catch (err) {
+        console.error('[lists-tab] load lists:', err);
+      }
+    }
+    loadLists();
+  }, [supabase, userId]);
 
   if (lists.length === 0) {
     return (

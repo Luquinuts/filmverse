@@ -41,12 +41,12 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Migrar Listas + Perfil (PR #3)
 
-- [ ] 3.1 Migrar `src/components/lists/add-to-list-dialog.tsx`: store async (`getLists`, `addFilmToList`, `isFilmInList`).
-- [ ] 3.2 Migrar `src/components/lists/lists-tab.tsx`: store async (`getLists`, `createList`, `deleteList`, `renameList`).
-- [ ] 3.3 Migrar `src/components/lists/list-card.tsx`: importar `CustomListRow` de types.
-- [ ] 3.4 Migrar `src/app/lists/[listId]/page.tsx`: store async (`getListById`, `deleteList`, `removeFilmFromList`, `addFilmToList`).
-- [ ] 3.5 Migrar `src/app/profile/page.tsx`: store async (`getUserReviews`, `getUserStats`, `getWatchlist`, `deleteReview`).
-- [ ] 3.6 Migrar `src/components/home/recommendations-section.tsx`: quitar `getCachedRecommendations`/`setCachedRecommendations`, leer de API `/api/ai/recommend/daily` vía fetch.
+- [x] 3.1 Migrar `src/components/lists/add-to-list-dialog.tsx`: store async (`getLists`, `addFilmToList`, `isFilmInList`).
+- [x] 3.2 Migrar `src/components/lists/lists-tab.tsx`: store async (`getLists`, `createList`, `deleteList`, `renameList`).
+- [x] 3.3 Migrar `src/components/lists/list-card.tsx`: importar `CustomListRow` de types.
+- [x] 3.4 Migrar `src/app/lists/[listId]/page.tsx`: store async (`getListById`, `deleteList`, `removeFilmFromList`, `addFilmToList`).
+- [x] 3.5 Migrar `src/app/profile/page.tsx`: store async (`getUserReviews`, `getUserStats`, `getWatchlist`, `deleteReview`).
+- [x] 3.6 Migrar `src/components/home/recommendations-section.tsx`: quitar `getCachedRecommendations`/`setCachedRecommendations`, leer de API `/api/ai/recommend/daily` vía fetch.
 
 ## Phase 4: Feed + API + Migración (PR #4)
 

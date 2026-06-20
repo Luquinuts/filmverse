@@ -1,22 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
 import {
   getLists,
   createList,
   addFilmToList,
   removeFilmFromList,
   isFilmInList,
-  type UserCustomList,
-} from '@/lib/local-store';
+} from '@/lib/supabase/store';
+import type { CustomListRow } from '@/lib/types';
 
 interface AddToListDialogProps {
   open: boolean;
   onClose: () => void;
+  userId: string;
   film: {
     filmId: number;
     filmTitle: string;
@@ -25,42 +27,85 @@ interface AddToListDialogProps {
   };
 }
 
-export function AddToListDialog({ open, onClose, film }: AddToListDialogProps) {
-  const [lists, setLists] = useState<UserCustomList[]>([]);
+export function AddToListDialog({ open, onClose, userId, film }: AddToListDialogProps) {
+  const supabase = useRef(createClient()).current;
+  const [lists, setLists] = useState<CustomListRow[]>([]);
   const [newListName, setNewListName] = useState('');
+  const [filmInListIds, setFilmInListIds] = useState<Set<string>>(new Set());
 
-  // Refresh lists from localStorage when dialog opens
+  // Refresh lists from Supabase when dialog opens
   useEffect(() => {
-    if (open) {
-      setLists(getLists());
-      setNewListName('');
-    }
-  }, [open]);
+    if (!open) return;
 
-  const filmEntry = {
-    filmId: film.filmId,
-    filmTitle: film.filmTitle,
-    filmPoster: film.filmPoster || null,
-    filmYear: film.filmYear || null,
+    async function load() {
+      try {
+        const allLists = await getLists(supabase, userId);
+        setLists(allLists);
+        setNewListName('');
+
+        // Check which lists contain this film
+        const checks = await Promise.all(
+          allLists.map(async (list) => {
+            const exists = await isFilmInList(supabase, list.id, film.filmId);
+            return exists ? list.id : null;
+          }),
+        );
+        setFilmInListIds(new Set(checks.filter(Boolean) as string[]));
+      } catch (err) {
+        console.error('[add-to-list] load lists:', err);
+      }
+    }
+    load();
+  }, [open, supabase, userId, film.filmId]);
+
+  const handleToggle = async (listId: string) => {
+    try {
+      if (filmInListIds.has(listId)) {
+        await removeFilmFromList(supabase, listId, film.filmId);
+        setFilmInListIds((prev) => {
+          const next = new Set(prev);
+          next.delete(listId);
+          return next;
+        });
+      } else {
+        await addFilmToList(supabase, {
+          list_id: listId,
+          film_id: film.filmId,
+          film_title: film.filmTitle,
+          film_poster: film.filmPoster || null,
+          film_year: film.filmYear || null,
+        });
+        setFilmInListIds((prev) => {
+          const next = new Set(prev);
+          next.add(listId);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('[add-to-list] toggle:', err);
+    }
   };
 
-  const handleToggle = (listId: string) => {
-    if (isFilmInList(listId, film.filmId)) {
-      removeFilmFromList(listId, film.filmId);
-    } else {
-      addFilmToList(listId, filmEntry);
-    }
-    // Re-read from localStorage to reflect changes
-    setLists(getLists());
-  };
-
-  const handleCreateList = () => {
+  const handleCreateList = async () => {
     const name = newListName.trim();
     if (!name) return;
-    const newList = createList(name);
-    addFilmToList(newList.id, filmEntry);
-    setNewListName('');
-    setLists(getLists());
+    try {
+      const newList = await createList(supabase, userId, name);
+      await addFilmToList(supabase, {
+        list_id: newList.id,
+        film_id: film.filmId,
+        film_title: film.filmTitle,
+        film_poster: film.filmPoster || null,
+        film_year: film.filmYear || null,
+      });
+      setNewListName('');
+      // Refresh lists
+      const allLists = await getLists(supabase, userId);
+      setLists(allLists);
+      setFilmInListIds((prev) => new Set([...prev, newList.id]));
+    } catch (err) {
+      console.error('[add-to-list] create list:', err);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -94,7 +139,7 @@ export function AddToListDialog({ open, onClose, film }: AddToListDialogProps) {
                 >
                   <input
                     type="checkbox"
-                    checked={isFilmInList(list.id, film.filmId)}
+                    checked={filmInListIds.has(list.id)}
                     onChange={() => handleToggle(list.id)}
                     className="size-4 accent-cinema-gold"
                   />
