@@ -9,21 +9,19 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, Recommendation } from '@/lib/types';
-
-// ─── Type Aliases ───
-
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-type ReviewRow = Database['public']['Tables']['reviews']['Row'];
-type ReviewInsert = Database['public']['Tables']['reviews']['Insert'];
-type WatchlistRow = Database['public']['Tables']['watchlist']['Row'];
-type WatchlistInsert = Database['public']['Tables']['watchlist']['Insert'];
-type CustomListRow = Database['public']['Tables']['custom_lists']['Row'];
-type CustomListInsert = Database['public']['Tables']['custom_lists']['Insert'];
-type ListFilmRow = Database['public']['Tables']['list_films']['Row'];
-type ListFilmInsert = Database['public']['Tables']['list_films']['Insert'];
-type FollowRow = Database['public']['Tables']['follows']['Row'];
-type RecommendationRow = Database['public']['Tables']['recommendations']['Row'];
+import type {
+  Recommendation,
+  ProfileRow,
+  ReviewRow,
+  ReviewInsert,
+  WatchlistRow,
+  WatchlistInsert,
+  CustomListRow,
+  ListFilmRow,
+  ListFilmInsert,
+  FollowRow,
+  RecommendationRow,
+} from '@/lib/types';
 
 // ─── Profiles ───
 
@@ -124,7 +122,7 @@ export async function getUserRating(
 export async function saveReview(
   client: SupabaseClient,
   userId: string,
-  review: ReviewInsert,
+  review: Omit<ReviewInsert, 'user_id'>,
 ): Promise<ReviewRow> {
   // Upsert: la constraint unique(user_id, film_id) evita duplicados por TOCTOU
   const { data, error } = await client
@@ -201,7 +199,7 @@ export async function isInWatchlist(
 export async function toggleWatchlist(
   client: SupabaseClient,
   userId: string,
-  entry: WatchlistInsert,
+  entry: Omit<WatchlistInsert, 'user_id'>,
 ): Promise<{ added: boolean }> {
   // Try to delete first (toggle OFF path)
   const { count: deleteCount } = await client

@@ -407,3 +407,17 @@ export interface Database {
     };
   };
 }
+
+// ─── Type Aliases (row types for CRUD operations) ───
+
+export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+export type ReviewRow = Database['public']['Tables']['reviews']['Row'];
+export type ReviewInsert = Database['public']['Tables']['reviews']['Insert'];
+export type WatchlistRow = Database['public']['Tables']['watchlist']['Row'];
+export type WatchlistInsert = Database['public']['Tables']['watchlist']['Insert'];
+export type CustomListRow = Database['public']['Tables']['custom_lists']['Row'];
+export type CustomListInsert = Database['public']['Tables']['custom_lists']['Insert'];
+export type ListFilmRow = Database['public']['Tables']['list_films']['Row'];
+export type ListFilmInsert = Database['public']['Tables']['list_films']['Insert'];
+export type FollowRow = Database['public']['Tables']['follows']['Row'];
+export type RecommendationRow = Database['public']['Tables']['recommendations']['Row'];

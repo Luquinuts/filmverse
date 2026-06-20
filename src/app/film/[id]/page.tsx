@@ -38,6 +38,8 @@ export default function FilmDetailPage({
             'Usuario',
         );
       }
+    }).catch((err) => {
+      console.error('[film] auth:', err);
     });
   }, [supabase]);
 
@@ -75,10 +77,14 @@ export default function FilmDetailPage({
     isInWatchlist(supabase, userId, movie.id)
       .then(setInWatchlist)
       .catch((err) => console.error('[film] isInWatchlist:', err));
-  }, [supabase, userId, movie]);
+  }, [supabase, userId, movie?.id]);
 
   useEffect(() => {
-    params.then(({ id }) => fetchDetail(id));
+    let ignore = false;
+    params.then(({ id }) => {
+      if (!ignore) fetchDetail(id);
+    });
+    return () => { ignore = true; };
   }, [params, fetchDetail]);
 
   // ── Loading skeleton ──

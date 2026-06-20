@@ -79,6 +79,9 @@ export default function DashboardPage() {
       } finally {
         setLoading(false);
       }
+    }).catch((err) => {
+      console.error('[dashboard] auth:', err);
+      setLoading(false);
     });
   }, [router, supabase]);
 

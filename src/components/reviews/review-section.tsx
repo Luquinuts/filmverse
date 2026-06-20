@@ -11,7 +11,7 @@ import {
   deleteReview,
   getUserRating,
 } from '@/lib/supabase/store';
-import type { ReviewRow, ReviewInsert } from '@/lib/types';
+import type { ReviewRow } from '@/lib/types';
 
 interface ReviewSectionProps {
   filmId: number;
@@ -58,7 +58,7 @@ export function ReviewSection({
     isSpoiler: boolean;
   }) => {
     try {
-      const reviewInsert: ReviewInsert = {
+      const reviewInsert = {
         film_id: filmId,
         film_title: filmTitle,
         film_poster: filmPoster,
