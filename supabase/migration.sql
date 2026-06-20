@@ -30,7 +30,8 @@ create table if not exists public.reviews (
   content     text not null default '',
   is_spoiler  boolean not null default false,
   created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  updated_at  timestamptz not null default now(),
+  unique(user_id, film_id)
 );
 
 create index if not exists idx_reviews_user_id on public.reviews(user_id);
@@ -237,6 +238,10 @@ create policy "Recomendaciones solo visibles por el dueño"
 create policy "Sistema inserta recomendaciones"
   on public.recommendations for insert
   with check (auth.uid() = user_id);
+
+create policy "Usuarios actualizan sus recomendaciones"
+  on public.recommendations for update
+  using (auth.uid() = user_id);
 
 -- ─── 5. SEED DATA (usuarios demo) ───
 -- Nota: los usuarios en auth.users deben existir primero.

@@ -35,7 +35,7 @@ export async function getProfile(
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('[store] getProfile:', error);
@@ -126,33 +126,18 @@ export async function saveReview(
   userId: string,
   review: ReviewInsert,
 ): Promise<ReviewRow> {
-  // Upsert: si ya existe una reseña del usuario para este film, actualiza; si no, inserta
-  const existing = await getUserRating(client, userId, review.film_id);
-
-  if (existing) {
-    const { data, error } = await client
-      .from('reviews')
-      .update({ ...review, user_id: userId })
-      .eq('id', existing.id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[store] saveReview (update):', error);
-      throw error;
-    }
-
-    return data;
-  }
-
+  // Upsert: la constraint unique(user_id, film_id) evita duplicados por TOCTOU
   const { data, error } = await client
     .from('reviews')
-    .insert({ ...review, user_id: userId })
+    .upsert(
+      { ...review, user_id: userId },
+      { onConflict: 'user_id, film_id' },
+    )
     .select()
     .single();
 
   if (error) {
-    console.error('[store] saveReview (insert):', error);
+    console.error('[store] saveReview:', error);
     throw error;
   }
 
@@ -199,9 +184,9 @@ export async function isInWatchlist(
   userId: string,
   filmId: number,
 ): Promise<boolean> {
-  const { data, error } = await client
+  const { count, error } = await client
     .from('watchlist')
-    .select('id', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('film_id', filmId);
 
@@ -210,7 +195,7 @@ export async function isInWatchlist(
     throw error;
   }
 
-  return (data ?? []).length > 0;
+  return (count ?? 0) > 0;
 }
 
 export async function toggleWatchlist(
@@ -218,29 +203,29 @@ export async function toggleWatchlist(
   userId: string,
   entry: WatchlistInsert,
 ): Promise<{ added: boolean }> {
-  // Check if already in watchlist
-  const existing = await isInWatchlist(client, userId, entry.film_id);
+  // Try to delete first (toggle OFF path)
+  const { count: deleteCount } = await client
+    .from('watchlist')
+    .delete({ count: 'exact' })
+    .eq('user_id', userId)
+    .eq('film_id', entry.film_id);
 
-  if (existing) {
-    const { error } = await client
-      .from('watchlist')
-      .delete()
-      .eq('user_id', userId)
-      .eq('film_id', entry.film_id);
-
-    if (error) {
-      console.error('[store] toggleWatchlist (remove):', error);
-      throw error;
-    }
-
+  // If a row was deleted, toggle was ON → now OFF
+  if (deleteCount && deleteCount > 0) {
     return { added: false };
   }
 
+  // No row to delete → toggle was OFF → insert
   const { error } = await client
     .from('watchlist')
     .insert({ ...entry, user_id: userId });
 
   if (error) {
+    // If unique violation, someone else already inserted it (concurrent request)
+    // Treat as "added" since the film is now in the watchlist
+    if (error.code === '23505') {
+      return { added: true };
+    }
     console.error('[store] toggleWatchlist (add):', error);
     throw error;
   }
@@ -276,7 +261,7 @@ export async function getListById(
     .from('custom_lists')
     .select('*')
     .eq('id', listId)
-    .single();
+    .maybeSingle();
 
   if (listError) {
     console.error('[store] getListById (list):', listError);
@@ -340,7 +325,7 @@ export async function addFilmToList(
 ): Promise<void> {
   const { error } = await client
     .from('list_films')
-    .insert(film);
+    .upsert(film, { onConflict: 'list_id, film_id', ignoreDuplicates: true });
 
   if (error) {
     console.error('[store] addFilmToList:', error);
@@ -370,9 +355,9 @@ export async function isFilmInList(
   listId: string,
   filmId: number,
 ): Promise<boolean> {
-  const { data, error } = await client
+  const { count, error } = await client
     .from('list_films')
-    .select('id', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true })
     .eq('list_id', listId)
     .eq('film_id', filmId);
 
@@ -381,14 +366,14 @@ export async function isFilmInList(
     throw error;
   }
 
-  return (data ?? []).length > 0;
+  return (count ?? 0) > 0;
 }
 
 export async function getFilmLists(
   client: SupabaseClient,
   userId: string,
   filmId: number,
-): Promise<CustomListRow[]> {
+): Promise<(CustomListRow & { list_films: ListFilmRow[] })[]> {
   const { data, error } = await client
     .from('custom_lists')
     .select('*, list_films!inner(*)')
@@ -446,9 +431,9 @@ export async function isFollowing(
   followerId: string,
   followingId: string,
 ): Promise<boolean> {
-  const { data, error } = await client
+  const { count, error } = await client
     .from('follows')
-    .select('follower_id', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true })
     .eq('follower_id', followerId)
     .eq('following_id', followingId);
 
@@ -457,7 +442,7 @@ export async function isFollowing(
     throw error;
   }
 
-  return (data ?? []).length > 0;
+  return (count ?? 0) > 0;
 }
 
 export async function toggleFollow(
@@ -465,28 +450,27 @@ export async function toggleFollow(
   followerId: string,
   followingId: string,
 ): Promise<{ following: boolean }> {
-  const existing = await isFollowing(client, followerId, followingId);
+  // Try to delete first (unfollow path)
+  const { count: deleteCount } = await client
+    .from('follows')
+    .delete({ count: 'exact' })
+    .eq('follower_id', followerId)
+    .eq('following_id', followingId);
 
-  if (existing) {
-    const { error } = await client
-      .from('follows')
-      .delete()
-      .eq('follower_id', followerId)
-      .eq('following_id', followingId);
-
-    if (error) {
-      console.error('[store] toggleFollow (unfollow):', error);
-      throw error;
-    }
-
+  // If a row was deleted, unfollow succeeded
+  if (deleteCount && deleteCount > 0) {
     return { following: false };
   }
 
+  // No row to delete → follow
   const { error } = await client
     .from('follows')
     .insert({ follower_id: followerId, following_id: followingId });
 
   if (error) {
+    if (error.code === '23505') {
+      return { following: true };
+    }
     console.error('[store] toggleFollow (follow):', error);
     throw error;
   }
