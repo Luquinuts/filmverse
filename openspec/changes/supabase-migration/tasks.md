@@ -34,10 +34,10 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Migrar Reviews + Watchlist (PR #2)
 
-- [ ] 2.1 Migrar `src/components/reviews/review-card.tsx`: importar `ReviewRow` de types en vez de `ReviewEntry` de local-store. Ajustar props.
-- [ ] 2.2 Migrar `src/components/reviews/review-section.tsx`: reemplazar `getFilmReviews`/`saveReview`/`deleteReview` por store async + `useState`/`useEffect`. Crear cliente Supabase con `createClient()` de `client.ts`.
-- [ ] 2.3 Migrar `src/app/film/[id]/page.tsx`: reemplazar `isInWatchlist`/`toggleWatchlist` por store async. Obtener userId de `auth.uid()`.
-- [ ] 2.4 Migrar `src/app/dashboard/page.tsx`: reemplazar `getUserReviews`/`getUserStats`/`getWatchlist` por store async. Mostrar loading states.
+- [x] 2.1 Migrar `src/components/reviews/review-card.tsx`: importar `ReviewRow` de types en vez de `ReviewEntry` de local-store. Ajustar props.
+- [x] 2.2 Migrar `src/components/reviews/review-section.tsx`: reemplazar `getFilmReviews`/`saveReview`/`deleteReview` por store async + `useState`/`useEffect`. Crear cliente Supabase con `createClient()` de `client.ts`.
+- [x] 2.3 Migrar `src/app/film/[id]/page.tsx`: reemplazar `isInWatchlist`/`toggleWatchlist` por store async. Obtener userId de `auth.uid()`.
+- [x] 2.4 Migrar `src/app/dashboard/page.tsx`: reemplazar `getUserReviews`/`getUserStats`/`getWatchlist` por store async. Mostrar loading states.
 
 ## Phase 3: Migrar Listas + Perfil (PR #3)
 

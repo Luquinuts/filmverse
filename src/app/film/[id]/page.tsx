@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Star, Clock, Calendar, Bookmark, ListPlus } from 'lucide-react';
 import type { MovieDetail, MovieSearchResult } from '@/lib/types';
@@ -9,7 +9,7 @@ import { SimilarCarousel } from '@/components/catalog/similar-carousel';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { createClient } from '@/lib/supabase/client';
 import { AddToListDialog } from '@/components/lists/add-to-list-dialog';
-import { isInWatchlist, toggleWatchlist } from '@/lib/local-store';
+import { isInWatchlist, toggleWatchlist } from '@/lib/supabase/store';
 
 type DetailState = 'loading' | 'error' | 'not-found' | 'success';
 
@@ -18,6 +18,7 @@ export default function FilmDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const supabase = useRef(createClient()).current;
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [similar, setSimilar] = useState<MovieSearchResult[]>([]);
   const [state, setState] = useState<DetailState>('loading');
@@ -26,9 +27,8 @@ export default function FilmDetailPage({
   const [inWatchlist, setInWatchlist] = useState(false);
   const [listDialogOpen, setListDialogOpen] = useState(false);
 
-  // Get current user from mock auth
+  // Get current user from Supabase auth
   useEffect(() => {
-    const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setUserId(data.user.id);
@@ -39,7 +39,7 @@ export default function FilmDetailPage({
         );
       }
     });
-  }, []);
+  }, [supabase]);
 
   const fetchDetail = useCallback(async (id: string) => {
     setState('loading');
@@ -63,12 +63,19 @@ export default function FilmDetailPage({
 
       setMovie(movieData);
       setSimilar(similarData);
-      setInWatchlist(isInWatchlist(movieData.id));
       setState('success');
     } catch {
       setState('error');
     }
   }, []);
+
+  // Check watchlist status when both userId and movie are available
+  useEffect(() => {
+    if (!userId || !movie) return;
+    isInWatchlist(supabase, userId, movie.id)
+      .then(setInWatchlist)
+      .catch((err) => console.error('[film] isInWatchlist:', err));
+  }, [supabase, userId, movie]);
 
   useEffect(() => {
     params.then(({ id }) => fetchDetail(id));
@@ -232,14 +239,19 @@ export default function FilmDetailPage({
             {userId && (
               <>
                 <button
-                  onClick={() => {
-                    const added = toggleWatchlist({
-                      filmId: movie.id,
-                      filmTitle: movie.title,
-                      filmPoster: movie.poster_path,
-                      filmYear: year,
-                    });
-                    setInWatchlist(added);
+                  onClick={async () => {
+                    if (!userId) return;
+                    try {
+                      const result = await toggleWatchlist(supabase, userId, {
+                        film_id: movie.id,
+                        film_title: movie.title,
+                        film_poster: movie.poster_path,
+                        film_year: year,
+                      });
+                      setInWatchlist(result.added);
+                    } catch (err) {
+                      console.error('[film] toggleWatchlist:', err);
+                    }
                   }}
                   className={`mt-3 flex items-center gap-2 self-start rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     inWatchlist

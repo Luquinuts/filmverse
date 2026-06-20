@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Film, RotateCcw, Sparkles } from 'lucide-react';
-import type { ReviewEntry, WatchlistEntry } from '@/lib/local-store';
+import type { ReviewRow, WatchlistRow } from '@/lib/types';
 import type { Recommendation } from '@/lib/types';
 import {
   getCachedRecommendations,
@@ -13,8 +13,8 @@ import {
 
 interface Props {
   userId: string;
-  reviews: ReviewEntry[];
-  watchlist: WatchlistEntry[];
+  reviews: ReviewRow[];
+  watchlist: WatchlistRow[];
 }
 
 export function RecommendationsSection({ userId, reviews, watchlist }: Props) {

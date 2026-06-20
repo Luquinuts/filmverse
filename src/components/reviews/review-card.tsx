@@ -1,13 +1,14 @@
 'use client';
 
 import { Star, Trash2, AlertTriangle } from 'lucide-react';
-import type { ReviewEntry } from '@/lib/local-store';
+import type { ReviewRow } from '@/lib/types';
 
 interface ReviewCardProps {
-  review: ReviewEntry;
+  review: ReviewRow;
   isOwner: boolean;
   onDelete?: (id: string) => void;
   showFilmInfo?: boolean;
+  username?: string;
 }
 
 export function ReviewCard({
@@ -15,11 +16,12 @@ export function ReviewCard({
   isOwner,
   onDelete,
   showFilmInfo,
+  username,
 }: ReviewCardProps) {
   return (
     <article
       className={`glass rounded-2xl p-5 ${
-        review.isSpoiler ? 'border-orange-500/20' : ''
+        review.is_spoiler ? 'border-orange-500/20' : ''
       }`}
     >
       {/* Header */}
@@ -27,12 +29,12 @@ export function ReviewCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium text-white text-sm">
-              {review.username}
+              {username ?? review.user_id.slice(0, 8)}
             </span>
             {showFilmInfo && (
               <span className="text-xs text-muted-foreground truncate">
-                en {review.filmTitle}
-                {review.filmYear && ` (${review.filmYear})`}
+                en {review.film_title}
+                {review.film_year && ` (${review.film_year})`}
               </span>
             )}
           </div>
@@ -45,7 +47,7 @@ export function ReviewCard({
         </div>
 
         <time className="shrink-0 text-xs text-muted-foreground">
-          {new Date(review.createdAt).toLocaleDateString('es-AR', {
+          {new Date(review.created_at).toLocaleDateString('es-AR', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
@@ -54,7 +56,7 @@ export function ReviewCard({
       </div>
 
       {/* Spoiler warning */}
-      {review.isSpoiler && (
+      {review.is_spoiler && (
         <div className="mb-3 flex items-center gap-2 rounded-lg bg-orange-500/10 px-3 py-2 text-xs text-orange-300">
           <AlertTriangle className="size-3.5 shrink-0" />
           Esta reseña contiene spoilers
@@ -64,7 +66,7 @@ export function ReviewCard({
       {/* Content */}
       <p
         className={`text-sm leading-relaxed text-muted-foreground ${
-          review.isSpoiler ? 'blur-sm transition-all hover:blur-none' : ''
+          review.is_spoiler ? 'blur-sm transition-all hover:blur-none' : ''
         }`}
       >
         {review.content}
