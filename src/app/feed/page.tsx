@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Rss, Users, UserPlus, Search, ArrowLeft, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { ReviewCard } from '@/components/reviews/review-card';
+import { ReportDialog } from '@/components/reviews/report-dialog';
 import {
   getFeedReviews,
   getFollowedUsers,
@@ -34,6 +35,7 @@ export default function FeedPage() {
   const [searchResults, setSearchResults] = useState<ProfileRow[]>([]);
   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [profilesMap, setProfilesMap] = useState<Record<string, ProfileRow>>(
     {},
   );
@@ -371,6 +373,7 @@ export default function FeedPage() {
                 profilesMap[review.user_id]?.username ??
                 review.user_id.slice(0, 8)
               }
+              onReport={setReportTargetId}
             />
           ))}
         </div>
@@ -390,6 +393,14 @@ export default function FeedPage() {
             Explorar películas
           </Link>
         </div>
+      )}
+
+      {/* Report dialog */}
+      {reportTargetId && (
+        <ReportDialog
+          reviewId={reportTargetId}
+          onClose={() => setReportTargetId(null)}
+        />
       )}
     </div>
   );

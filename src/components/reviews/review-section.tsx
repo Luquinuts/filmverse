@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { MessageSquareText } from 'lucide-react';
 import { ReviewForm } from './review-form';
 import { ReviewCard } from './review-card';
+import { ReportDialog } from './report-dialog';
 import { createClient } from '@/lib/supabase/client';
 import {
   getFilmReviews,
@@ -35,6 +36,7 @@ export function ReviewSection({
   const [existingReview, setExistingReview] = useState<ReviewRow | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -145,6 +147,7 @@ export function ReviewSection({
               review={review}
               isOwner={false}
               showFilmInfo={false}
+              onReport={setReportTargetId}
             />
           ))}
         </div>
@@ -154,6 +157,14 @@ export function ReviewSection({
             ? 'Sé el primero en reseñar esta película.'
             : 'Todavía no hay reseñas. ¡Sé el primero!'}
         </p>
+      )}
+
+      {/* Report dialog */}
+      {reportTargetId && (
+        <ReportDialog
+          reviewId={reportTargetId}
+          onClose={() => setReportTargetId(null)}
+        />
       )}
     </section>
   );
