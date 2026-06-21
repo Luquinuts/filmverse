@@ -407,6 +407,63 @@ export async function getFilmLists(
   return data ?? [];
 }
 
+// ─── Profiles (batch + search) ───
+
+export async function getProfiles(
+  client: SupabaseClient,
+  userIds: string[],
+): Promise<ProfileRow[]> {
+  if (userIds.length === 0) return [];
+  const { data, error } = await client
+    .from('profiles')
+    .select('*')
+    .in('id', userIds);
+
+  if (error) {
+    console.error('[store] getProfiles:', error);
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+export async function searchProfiles(
+  client: SupabaseClient,
+  query: string,
+  excludeUserId?: string,
+): Promise<ProfileRow[]> {
+  const { data, error } = await client
+    .from('profiles')
+    .select('*')
+    .ilike('username', `%${query}%`)
+    .limit(10);
+
+  if (error) {
+    console.error('[store] searchProfiles:', error);
+    throw error;
+  }
+
+  return (data ?? []).filter((p) => p.id !== excludeUserId);
+}
+
+export async function getSuggestedUsers(
+  client: SupabaseClient,
+  userId: string,
+): Promise<ProfileRow[]> {
+  const { data, error } = await client
+    .from('profiles')
+    .select('*')
+    .neq('id', userId)
+    .limit(5);
+
+  if (error) {
+    console.error('[store] getSuggestedUsers:', error);
+    throw error;
+  }
+
+  return data ?? [];
+}
+
 // ─── Follows ───
 
 export async function getFollowedUsers(

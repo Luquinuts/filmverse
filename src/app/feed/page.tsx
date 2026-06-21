@@ -1,55 +1,176 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Rss, Users, UserPlus, Search, ArrowLeft, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { ReviewCard } from '@/components/reviews/review-card';
 import {
-  ensureSeedData,
   getFeedReviews,
   getFollowedUsers,
+  getProfiles,
   toggleFollow,
-  isFollowing,
-  getSeedUsers,
-  type ReviewEntry,
-} from '@/lib/local-store';
+  searchProfiles,
+  getSuggestedUsers,
+} from '@/lib/supabase/store';
+import type { ReviewRow, ProfileRow } from '@/lib/types';
+
+interface FeedUser {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+}
 
 export default function FeedPage() {
   const router = useRouter();
   const supabase = useRef(createClient()).current;
-  const authChecked = useRef(false);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<ReviewEntry[]>([]);
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [followedUsers, setFollowedUsers] = useState<FeedUser[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<ProfileRow[]>([]);
+  const [searchResults, setSearchResults] = useState<ProfileRow[]>([]);
+  const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [profilesMap, setProfilesMap] = useState<Record<string, ProfileRow>>(
+    {},
+  );
+
+  const loadFeedData = useCallback(
+    async (uid: string) => {
+      try {
+        const [feedReviews, followed] = await Promise.all([
+          getFeedReviews(supabase, uid),
+          getFollowedUsers(supabase, uid),
+        ]);
+
+        // Build followed users set (for quick following checks)
+        const followedIds = new Set(followed.map((f) => f.following_id));
+        setFollowingSet(followedIds);
+
+        // Get all unique user_ids from reviews + followed users
+        const reviewUserIds = feedReviews.map((r) => r.user_id);
+        const allIds = [
+          ...new Set([...reviewUserIds, ...followed.map((f) => f.following_id)]),
+        ];
+
+        let profiles: ProfileRow[] = [];
+        if (allIds.length > 0) {
+          profiles = await getProfiles(supabase, allIds);
+        }
+
+        const map: Record<string, ProfileRow> = {};
+        for (const p of profiles) {
+          map[p.id] = p;
+        }
+        setProfilesMap(map);
+
+        // Build followed users display list
+        setFollowedUsers(
+          followed
+            .map((f) => {
+              const profile = map[f.following_id];
+              return {
+                userId: f.following_id,
+                username: profile?.username ?? f.following_id.slice(0, 8),
+                avatarUrl: profile?.avatar_url ?? null,
+              };
+            })
+            .filter((u) => u.userId !== uid),
+        );
+
+        setReviews(feedReviews);
+
+        // Load suggested users (only if not following anyone)
+        if (followed.length === 0) {
+          const suggested = await getSuggestedUsers(supabase, uid);
+          setSuggestedUsers(suggested);
+        }
+      } catch (err) {
+        console.error('[feed] loadFeedData:', err);
+      }
+    },
+    [supabase],
+  );
 
   useEffect(() => {
-    if (authChecked.current) return;
-    authChecked.current = true;
+    supabase.auth
+      .getUser()
+      .then(async ({ data }) => {
+        if (!data.user) {
+          setLoading(false);
+          router.push('/login?redirect=/feed');
+          return;
+        }
 
-    // Seed data si es primera vez
-    ensureSeedData();
+        const uid = data.user.id;
+        setUserId(uid);
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.push('/login?redirect=/feed');
-        return;
+        await loadFeedData(uid);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('[feed] auth:', err);
+        setLoading(false);
+      });
+  }, [router, supabase.auth, loadFeedData]);
+
+  // Search effect
+  useEffect(() => {
+    if (!userId || !searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchProfiles(supabase, searchQuery, userId);
+        setSearchResults(results);
+      } catch (err) {
+        console.error('[feed] search:', err);
       }
+    }, 300);
 
-      const uid = data.user.id;
-      setUserId(uid);
-      setReviews(getFeedReviews(uid));
-      setLoading(false);
+    return () => clearTimeout(timer);
+  }, [searchQuery, userId, supabase]);
+
+  const handleFollowUser = async (target: {
+    userId: string;
+    username: string;
+  }) => {
+    if (!userId) return;
+
+    const wasFollowing = followingSet.has(target.userId);
+
+    // Optimistic update
+    setFollowingSet((prev) => {
+      const next = new Set(prev);
+      if (wasFollowing) {
+        next.delete(target.userId);
+      } else {
+        next.add(target.userId);
+      }
+      return next;
     });
-  }, [router, supabase.auth]);
 
-  const handleFollowUser = (target: { userId: string; username: string }) => {
-    toggleFollow(target);
-    // Refrescar reseñas del feed ahora que cambió la lista de seguidos
-    setReviews(getFeedReviews(userId!));
+    try {
+      await toggleFollow(supabase, userId, target.userId);
+      await loadFeedData(userId);
+    } catch (err) {
+      console.error('[feed] handleFollowUser:', err);
+      // Revert optimistic update on failure
+      setFollowingSet((prev) => {
+        const next = new Set(prev);
+        if (wasFollowing) {
+          next.add(target.userId);
+        } else {
+          next.delete(target.userId);
+        }
+        return next;
+      });
+    }
   };
 
   if (loading) {
@@ -64,7 +185,7 @@ export default function FeedPage() {
     );
   }
 
-  const followedUsers = getFollowedUsers();
+  const isUserFollowing = (targetId: string) => followingSet.has(targetId);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -112,55 +233,41 @@ export default function FeedPage() {
         {/* Resultados de búsqueda */}
         {searchQuery.trim().length > 0 && (
           <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-            {getSeedUsers()
-              .filter(
-                (u) =>
-                  u.username
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) &&
-                  u.userId !== userId,
-              )
-              .map((user) => {
-                const following = isFollowing(user.userId);
-                return (
-                  <div
-                    key={user.userId}
-                    className="flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-white/5"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-9 items-center justify-center rounded-full bg-cinema-gold/20">
-                        <Users className="size-4 text-cinema-gold" />
-                      </div>
-                      <span className="text-sm text-white">
-                        {user.username}
-                      </span>
+            {searchResults.map((profile) => {
+              const following = isUserFollowing(profile.id);
+              return (
+                <div
+                  key={profile.id}
+                  className="flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-white/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 items-center justify-center rounded-full bg-cinema-gold/20">
+                      <Users className="size-4 text-cinema-gold" />
                     </div>
-                    <button
-                      onClick={() =>
-                        handleFollowUser({
-                          userId: user.userId,
-                          username: user.username,
-                        })
-                      }
-                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                        following
-                          ? 'border border-red-400/30 text-red-400 hover:bg-red-400/10'
-                          : 'bg-cinema-gold text-black hover:bg-cinema-amber'
-                      }`}
-                    >
-                      {following ? 'Dejar de seguir' : 'Seguir'}
-                    </button>
+                    <span className="text-sm text-white">
+                      {profile.username}
+                    </span>
                   </div>
-                );
-              })}
+                  <button
+                    onClick={() =>
+                      handleFollowUser({
+                        userId: profile.id,
+                        username: profile.username,
+                      })
+                    }
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                      following
+                        ? 'border border-red-400/30 text-red-400 hover:bg-red-400/10'
+                        : 'bg-cinema-gold text-black hover:bg-cinema-amber'
+                    }`}
+                  >
+                    {following ? 'Dejar de seguir' : 'Seguir'}
+                  </button>
+                </div>
+              );
+            })}
 
-            {getSeedUsers().filter(
-              (u) =>
-                u.username
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) &&
-                u.userId !== userId,
-            ).length === 0 && (
+            {searchResults.length === 0 && (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 No encontramos usuarios con &ldquo;{searchQuery}&rdquo;
               </p>
@@ -170,7 +277,7 @@ export default function FeedPage() {
       </div>
 
       {/* Sugerencias para seguir */}
-      {followedUsers.length === 0 && (
+      {followedUsers.length === 0 && suggestedUsers.length > 0 && (
         <section className="mb-8 rounded-2xl border-2 border-dashed border-white/10 p-6">
           <div className="mb-4 flex items-center gap-2 text-cinema-gold">
             <Users className="size-5" />
@@ -180,21 +287,23 @@ export default function FeedPage() {
             Seguí usuarios para ver sus reseñas en tu feed:
           </p>
           <div className="flex flex-wrap gap-2">
-            {getSeedUsers().map((seed) => (
-              <button
-                key={seed.userId}
-                onClick={() =>
-                  handleFollowUser({
-                    userId: seed.userId,
-                    username: seed.username,
-                  })
-                }
-                className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-cinema-gold/40 hover:text-cinema-gold"
-              >
-                <UserPlus className="size-4" />
-                {seed.username}
-              </button>
-            ))}
+            {suggestedUsers
+              .filter((s) => !isUserFollowing(s.id))
+              .map((profile) => (
+                <button
+                  key={profile.id}
+                  onClick={() =>
+                    handleFollowUser({
+                      userId: profile.id,
+                      username: profile.username,
+                    })
+                  }
+                  className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-cinema-gold/40 hover:text-cinema-gold"
+                >
+                  <UserPlus className="size-4" />
+                  {profile.username}
+                </button>
+              ))}
           </div>
         </section>
       )}
@@ -227,22 +336,22 @@ export default function FeedPage() {
               </span>
             ))}
             {/* Sugerencia de más usuarios */}
-            {getSeedUsers()
-              .filter((s) => !isFollowing(s.userId))
+            {suggestedUsers
+              .filter((s) => !isUserFollowing(s.id) && !followedUsers.some((f) => f.userId === s.id))
               .slice(0, 3)
-              .map((seed) => (
+              .map((profile) => (
                 <button
-                  key={seed.userId}
+                  key={profile.id}
                   onClick={() =>
                     handleFollowUser({
-                      userId: seed.userId,
-                      username: seed.username,
+                      userId: profile.id,
+                      username: profile.username,
                     })
                   }
                   className="flex items-center gap-2 rounded-full border border-dashed border-white/10 px-4 py-2 text-xs text-muted-foreground transition-colors hover:border-cinema-gold/40 hover:text-cinema-gold"
                 >
                   <UserPlus className="size-3" />
-                  {seed.username}
+                  {profile.username}
                 </button>
               ))}
           </div>
@@ -256,8 +365,12 @@ export default function FeedPage() {
             <ReviewCard
               key={review.id}
               review={review}
-              isOwner={review.userId === userId}
+              isOwner={review.user_id === userId}
               showFilmInfo
+              username={
+                profilesMap[review.user_id]?.username ??
+                review.user_id.slice(0, 8)
+              }
             />
           ))}
         </div>

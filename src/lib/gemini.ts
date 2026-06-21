@@ -4,9 +4,26 @@
  * Se usa exclusivamente del lado del servidor (Route Handlers).
  */
 
-import type { ReviewEntry, WatchlistEntry } from '@/lib/local-store';
 import type { Recommendation } from '@/lib/types';
 import { TmdbClient } from '@/lib/tmdb';
+
+// ─── Tipos locales para getRecommendations ───
+// Compatibles con ReviewRow y WatchlistRow de @/lib/types
+// (los nombres camelCase mapean a snake_case de Supabase)
+
+interface GeminiReview {
+  filmTitle: string;
+  filmYear: number | null;
+  filmPoster?: string | null;
+  rating: number;
+  content: string;
+}
+
+interface GeminiWatchlistEntry {
+  filmTitle: string;
+  filmYear: number | null;
+  filmPoster?: string | null;
+}
 
 const GEMINI_API_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -118,8 +135,8 @@ export async function sendMessage(
 }
 
 export async function getRecommendations(
-  reviews: ReviewEntry[],
-  watchlist: WatchlistEntry[],
+  reviews: GeminiReview[],
+  watchlist: GeminiWatchlistEntry[],
 ): Promise<Recommendation[]> {
   const apiKey = process.env.GEMINI_API_KEY;
 
