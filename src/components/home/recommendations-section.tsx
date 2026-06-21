@@ -14,6 +14,7 @@ interface Props {
 
 export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,8 +38,11 @@ export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
       const data = (await res.json()) as {
         recommendations: Recommendation[];
         date: string;
+        generatedAt?: string;
+        cached?: boolean;
       };
       setRecommendations(data.recommendations);
+      setLastUpdated(data.generatedAt ?? null);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Error desconocido';
@@ -75,11 +79,26 @@ export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
   return (
     <section className="mx-auto max-w-6xl px-4">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-          <Sparkles className="size-5 text-cinema-gold" />
-          Próximas películas para ver
-        </h2>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+            <Sparkles className="size-5 text-cinema-gold" />
+            Próximas películas para ver
+          </h2>
+          {lastUpdated && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Actualizado el{' '}
+              {new Date(lastUpdated).toLocaleString('es-AR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'America/Argentina/Buenos_Aires',
+              })}
+            </p>
+          )}
+        </div>
         <button
           onClick={handleRefresh}
           disabled={loading}
