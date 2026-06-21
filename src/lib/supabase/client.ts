@@ -80,6 +80,24 @@ export function createClient() {
         insert: async () => ({ error: null }),
         update: async () => ({ error: null }),
         delete: async () => ({ error: null }),
+        upsert: () => ({
+          select: () => ({
+            single: async () => ({
+              data: {
+                id: 'mock-review-id',
+                user_id: mockUser.id,
+                film_id: 0,
+                film_title: '',
+                rating: 0,
+                content: '',
+                is_spoiler: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              },
+              error: null,
+            }),
+          }),
+        }),
       }),
     } as unknown as ReturnType<typeof createBrowserClient>;
   }

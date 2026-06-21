@@ -13,6 +13,7 @@ interface ReviewFormProps {
     isSpoiler: boolean;
   }) => void;
   onCancel?: () => void;
+  error?: string | null;
 }
 
 export function ReviewForm({
@@ -21,6 +22,7 @@ export function ReviewForm({
   existingSpoiler,
   onSave,
   onCancel,
+  error,
 }: ReviewFormProps) {
   const [rating, setRating] = useState(existingRating ?? 0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -97,6 +99,13 @@ export function ReviewForm({
         />
         Contiene spoilers
       </label>
+
+      {/* Error */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+          {error}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-3">

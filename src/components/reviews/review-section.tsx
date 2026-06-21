@@ -34,6 +34,7 @@ export function ReviewSection({
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [existingReview, setExistingReview] = useState<ReviewRow | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -58,6 +59,7 @@ export function ReviewSection({
     isSpoiler: boolean;
   }) => {
     try {
+      setSaveError(null);
       const reviewInsert = {
         film_id: filmId,
         film_title: filmTitle,
@@ -72,6 +74,9 @@ export function ReviewSection({
       loadReviews();
     } catch (err) {
       console.error('[review-section] handleSave:', err);
+      setSaveError(
+        err instanceof Error ? err.message : 'Error al guardar la reseña',
+      );
     }
   };
 
@@ -103,6 +108,7 @@ export function ReviewSection({
               existingSpoiler={existingReview?.is_spoiler ?? false}
               onSave={handleSave}
               onCancel={() => setShowForm(false)}
+              error={saveError}
             />
           ) : existingReview ? (
             <div>
