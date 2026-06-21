@@ -79,34 +79,24 @@ export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
   return (
     <section className="mx-auto max-w-6xl px-4">
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-            <Sparkles className="size-5 text-cinema-gold" />
-            Próximas películas para ver
-          </h2>
-          {lastUpdated && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Actualizado el{' '}
-              {new Date(lastUpdated).toLocaleString('es-AR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'America/Argentina/Buenos_Aires',
-              })}
-            </p>
-          )}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-lg font-bold text-white">
+          <Sparkles className="size-5 text-cinema-gold" />
+          Próximas películas para ver
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={loading}
-          className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-white/20 hover:text-white disabled:opacity-50"
-        >
-          <RotateCcw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar recomendaciones
-        </button>
+        {lastUpdated && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Actualizado el{' '}
+            {new Date(lastUpdated).toLocaleString('es-AR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'America/Argentina/Buenos_Aires',
+            })}
+          </p>
+        )}
       </div>
 
       {/* Loading shimmer */}
