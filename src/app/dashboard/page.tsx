@@ -11,39 +11,79 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  getUserReviews,
+  getReviews,
   getUserStats,
   getWatchlist,
-} from '@/lib/local-store';
+} from '@/lib/supabase/store';
+import type { ReviewRow, WatchlistRow } from '@/lib/types';
 import { ReviewCard } from '@/components/reviews/review-card';
 import { TrendingSection } from '@/components/home/trending-section';
 import { RecommendationsSection } from '@/components/home/recommendations-section';
+
+interface DashboardStats {
+  reviewsCount: number;
+  watchlistCount: number;
+  averageRating: number;
+  listsCount: number;
+}
+
+const INITIAL_STATS: DashboardStats = {
+  reviewsCount: 0,
+  watchlistCount: 0,
+  averageRating: 0,
+  listsCount: 0,
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = useRef(createClient()).current;
   const authChecked = useRef(false);
 
+  const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>(INITIAL_STATS);
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [watchlist, setWatchlist] = useState<WatchlistRow[]>([]);
 
   useEffect(() => {
     if (authChecked.current) return;
     authChecked.current = true;
 
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         router.push('/login?redirect=/dashboard');
         return;
       }
+
+      const uid = data.user.id;
+      setUserId(uid);
       setUsername(
         (data.user.user_metadata?.username as string) ??
           data.user.email?.split('@')[0] ??
           'Usuario',
       );
+
+      // Load dashboard data in parallel
+      try {
+        const [statsData, reviewsData, watchlistData] = await Promise.all([
+          getUserStats(supabase, uid),
+          getReviews(supabase, uid),
+          getWatchlist(supabase, uid),
+        ]);
+        setStats(statsData);
+        setReviews(reviewsData.slice(0, 5));
+        setWatchlist(watchlistData);
+      } catch (err) {
+        console.error('[dashboard] load data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }).catch((err) => {
+      console.error('[dashboard] auth:', err);
       setLoading(false);
     });
-  }, [router, supabase.auth]);
+  }, [router, supabase]);
 
   if (loading) {
     return (
@@ -60,11 +100,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const userId = 'mock-user-001';
-  const stats = getUserStats(userId);
-  const reviews = getUserReviews(userId).slice(0, 5);
-  const watchlist = getWatchlist();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -133,6 +168,7 @@ export default function DashboardPage() {
                 review={review}
                 isOwner
                 showFilmInfo
+                username={username}
               />
             ))}
           </div>
@@ -166,7 +202,13 @@ export default function DashboardPage() {
 
       {/* AI Recommendations */}
       <section className="mt-10">
-        <RecommendationsSection userId={userId} reviews={reviews} watchlist={watchlist} />
+        {userId && (
+          <RecommendationsSection
+            userId={userId}
+            reviews={reviews}
+            watchlist={watchlist}
+          />
+        )}
       </section>
     </div>
   );

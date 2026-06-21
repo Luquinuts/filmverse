@@ -3,18 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Film, RotateCcw, Sparkles } from 'lucide-react';
-import type { ReviewEntry, WatchlistEntry } from '@/lib/local-store';
+import type { ReviewRow, WatchlistRow } from '@/lib/types';
 import type { Recommendation } from '@/lib/types';
-import {
-  getCachedRecommendations,
-  setCachedRecommendations,
-  clearRecommendationsCache,
-} from '@/lib/local-store';
 
 interface Props {
   userId: string;
-  reviews: ReviewEntry[];
-  watchlist: WatchlistEntry[];
+  reviews: ReviewRow[];
+  watchlist: WatchlistRow[];
 }
 
 export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
@@ -44,7 +39,6 @@ export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
         date: string;
       };
       setRecommendations(data.recommendations);
-      setCachedRecommendations(data.recommendations, data.date);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Error desconocido';
@@ -57,17 +51,10 @@ export function RecommendationsSection({ userId, reviews, watchlist }: Props) {
   useEffect(() => {
     if (reviews.length === 0) return;
 
-    const cached = getCachedRecommendations();
-    if (cached) {
-      setRecommendations(cached);
-      return;
-    }
-
     fetchRecommendations();
   }, [reviews.length, fetchRecommendations]);
 
   const handleRefresh = () => {
-    clearRecommendationsCache();
     fetchRecommendations();
   };
 

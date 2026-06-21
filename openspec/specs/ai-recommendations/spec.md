@@ -2,21 +2,21 @@
 
 ## Propósito
 
-Generar 5 recomendaciones personalizadas vía Gemini desde reseñas (puntaje + texto) y watchlist del usuario. Se muestran en el dashboard tras la sección de tendencias.
+Generar 5 recomendaciones personalizadas vía Gemini desde reseñas y watchlist del usuario. Las recomendaciones se persisten en `public.recommendations` con cache diario por `unique(user_id, report_date)`.
 
 ## Datos
 
 | Concepto | Detalle |
 |----------|---------|
-| `Recommendation.matchPercentage?` | Extender `src/lib/types.ts` — `number`, 0–100 |
-| Cache key | `filmverse_recommendations` |
-| Cache shape | `{ data: Recommendation[], timestamp: number }` |
-| Cache TTL | 30 minutos |
-| Cache invalidation | `saveReview()` o click "Actualizar recomendaciones" |
+| `Recommendation.matchPercentage` | `number`, 0–100 |
+| Persistencia | `public.recommendations` — JSONB, `unique(user_id, report_date)` |
+| Cache TTL | Diario (por `report_date`) |
+| Cache invalidation | Nueva reseña o click "Actualizar recomendaciones" |
+| Store | Asíncrono via `src/lib/supabase/store.ts` |
 
 ## API Route: POST /api/ai/recommend
 
-**Request**: `{ reviews: ReviewEntry[], watchlist: WatchlistEntry[] }`
+**Request body**: `{ userId?: string }` — si no se envía userId, el server obtiene `auth.uid()`.
 **Response éxito**: `{ recommendations: Recommendation[] }` (200)
 **Response error**: `{ error: string }` (400/500/503)
 
@@ -26,6 +26,14 @@ Generar 5 recomendaciones personalizadas vía Gemini desde reseñas (puntaje + t
 | 400 | reviews vacío |
 | 500 | Error interno o Gemini caído |
 | 503 | `GEMINI_API_KEY` no configurada |
+
+**Comportamiento**: El server obtiene reviews + watchlist de Supabase vía server client (`createClient` de `server.ts`) con `auth.uid()`. Backward compatible con clients que envían datos.
+
+## API Route: POST /api/ai/recommend/daily
+
+**POST**: Genera recomendaciones con Gemini y persiste en `public.recommendations` con `setDailyRecommendation`. Si ya existe para `(user_id, report_date)`, devuelve el caché sin llamar a Gemini.
+
+**GET**: Devuelve recomendaciones desde `public.recommendations` con query param `userId`. Cache diario vía `unique(user_id, report_date)`.
 
 ## Gemini: getRecommendations
 
@@ -39,7 +47,7 @@ Nueva función en `src/lib/gemini.ts`:
 
 ## Componente: RecommendationsSection
 
-`'use client'` — Props: `{ reviews: ReviewEntry[]; watchlist: WatchlistEntry[] }`.
+`'use client'` — Props: `{ reviews: ReviewRow[]; watchlist: WatchlistRow[] }`.
 
 | Estado | Comportamiento |
 |--------|---------------|
@@ -51,13 +59,13 @@ Nueva función en `src/lib/gemini.ts`:
 Botón "Actualizar recomendaciones" en top right del section header. Invalida cache y refetch.
 
 ### Cache flow
-- Mount → check `filmverse_recommendations` en localStorage
-- Válido (< 30 min) → mostrar sin fetch
-- Expirado/ausente → POST a `/api/ai/recommend` → cachear resultado
+- Mount → GET `/api/ai/recommend/daily` con userId
+- Válido (misma fecha) → mostrar sin fetch a Gemini
+- Expirado/ausente → POST a `/api/ai/recommend/daily` → generar y cachear
 
 ## Dashboard
 
-Importar `getReviews` y `getWatchlist` de local-store, pasar a `<RecommendationsSection />`, renderizar después de `TrendingSection`.
+Importar `getReviews` y `getWatchlist` de `supabase/store.ts`, pasar a `<RecommendationsSection />`, renderizar después de `TrendingSection`.
 
 ## Textos UI (español rioplatense)
 
@@ -77,6 +85,13 @@ Importar `getReviews` y `getWatchlist` de local-store, pasar a `<Recommendations
 | 1 | Usuario con 5+ reseñas | 5 cards visibles con match % |
 | 2 | Usuario sin reseñas | Empty state, no API call |
 | 3 | API error | Error state + reintentar |
-| 4 | Cache válido | Instant load sin fetch |
-| 5 | Nueva reseña | Cache invalidado al volver al dashboard |
-| 6 | Click "Actualizar" | Refresca desde Gemini |
+| 4 | Cache diario válido | GET sin llamar a Gemini |
+| 5 | Nueva reseña | Cache invalida, próxima GET refresca |
+| 6 | Click "Actualizar" | POST regenera desde Gemini |
+
+## Store API
+
+| Función | Input | Output |
+|---------|-------|--------|
+| `getDailyRecommendation(client, userId, date)` | `SupabaseClient, string, string (YYYY-MM-DD)` | `RecommendationRow \| null` |
+| `setDailyRecommendation(client, userId, date, data)` | `SupabaseClient, string, string, Recommendation[]` | `void` |

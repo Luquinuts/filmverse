@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { List } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { UserCustomList } from '@/lib/local-store';
+import type { CustomListRow } from '@/lib/types';
 
 interface ListCardProps {
-  list: UserCustomList & { filmCount: number };
+  list: CustomListRow & { filmCount: number };
 }
 
 const gradients = [
