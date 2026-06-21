@@ -11,6 +11,8 @@ import {
   Bookmark,
   MessageSquareText,
   List,
+  Users,
+  UserPlus,
   LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -29,6 +31,8 @@ interface ProfileStats {
   watchlistCount: number;
   averageRating: number;
   listsCount: number;
+  followersCount: number;
+  followingCount: number;
 }
 
 const INITIAL_STATS: ProfileStats = {
@@ -36,6 +40,8 @@ const INITIAL_STATS: ProfileStats = {
   watchlistCount: 0,
   averageRating: 0,
   listsCount: 0,
+  followersCount: 0,
+  followingCount: 0,
 };
 
 type ProfileTab = 'reviews' | 'watchlist' | 'lists';
@@ -153,7 +159,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div className="rounded-xl bg-white/5 p-4 text-center">
             <Star className="mx-auto mb-1 size-5 text-cinema-gold" />
             <p className="text-xl font-bold text-white">
@@ -183,6 +189,20 @@ export default function ProfilePage() {
               {stats.listsCount}
             </p>
             <p className="text-xs text-muted-foreground">Listas</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4 text-center">
+            <Users className="mx-auto mb-1 size-5 text-cinema-gold" />
+            <p className="text-xl font-bold text-white">
+              {stats.followersCount}
+            </p>
+            <p className="text-xs text-muted-foreground">Seguidores</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4 text-center">
+            <UserPlus className="mx-auto mb-1 size-5 text-cinema-gold" />
+            <p className="text-xl font-bold text-white">
+              {stats.followingCount}
+            </p>
+            <p className="text-xs text-muted-foreground">Siguiendo</p>
           </div>
         </div>
       </div>

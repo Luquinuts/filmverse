@@ -600,6 +600,8 @@ export async function getUserStats(
   watchlistCount: number;
   averageRating: number;
   listsCount: number;
+  followersCount: number;
+  followingCount: number;
 }> {
   // Obtener ratings de reseñas
   const { data: reviews, error: reviewsError } = await client
@@ -634,6 +636,28 @@ export async function getUserStats(
     throw listsError;
   }
 
+  // Contar seguidores
+  const { count: followersCount, error: followersError } = await client
+    .from('follows')
+    .select('*', { count: 'exact', head: true })
+    .eq('following_id', userId);
+
+  if (followersError) {
+    console.error('[store] getUserStats (followers):', followersError);
+    throw followersError;
+  }
+
+  // Contar seguidos
+  const { count: followingCount, error: followingError } = await client
+    .from('follows')
+    .select('*', { count: 'exact', head: true })
+    .eq('follower_id', userId);
+
+  if (followingError) {
+    console.error('[store] getUserStats (following):', followingError);
+    throw followingError;
+  }
+
   const totalRating = reviews?.reduce((sum, r) => sum + r.rating, 0) ?? 0;
 
   return {
@@ -642,6 +666,8 @@ export async function getUserStats(
     averageRating:
       reviews && reviews.length > 0 ? totalRating / reviews.length : 0,
     listsCount: listsCount ?? 0,
+    followersCount: followersCount ?? 0,
+    followingCount: followingCount ?? 0,
   };
 }
 
