@@ -10,7 +10,6 @@ import { SearchInput } from '@/components/catalog/search-input';
 export function Navbar() {
   const router = useRouter();
   const supabase = useRef(createClient()).current;
-  const authChecked = useRef(false);
 
   const [query, setQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,9 +17,7 @@ export function Navbar() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    if (authChecked.current) return;
-    authChecked.current = true;
-
+    // Initial auth check
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setIsLoggedIn(true);
@@ -31,6 +28,25 @@ export function Navbar() {
         );
       }
     });
+
+    // Listen for auth changes (login/logout) reactively
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          setIsLoggedIn(true);
+          setUsername(
+            session.user.user_metadata?.username as string ??
+              session.user.email?.split('@')[0] ??
+              'Usuario',
+          );
+        } else {
+          setIsLoggedIn(false);
+          setUsername('');
+        }
+      },
+    );
+
+    return () => subscription.unsubscribe();
   }, [supabase.auth]);
 
   const handleSearch = () => {
