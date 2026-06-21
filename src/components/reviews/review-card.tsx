@@ -1,12 +1,13 @@
 'use client';
 
-import { Star, Trash2, AlertTriangle } from 'lucide-react';
+import { Star, Trash2, AlertTriangle, Flag } from 'lucide-react';
 import type { ReviewRow } from '@/lib/types';
 
 interface ReviewCardProps {
   review: ReviewRow;
   isOwner: boolean;
   onDelete?: (id: string) => void;
+  onReport?: (id: string) => void;
   showFilmInfo?: boolean;
   username?: string;
 }
@@ -15,6 +16,7 @@ export function ReviewCard({
   review,
   isOwner,
   onDelete,
+  onReport,
   showFilmInfo,
   username,
 }: ReviewCardProps) {
@@ -72,9 +74,9 @@ export function ReviewCard({
         {review.content}
       </p>
 
-      {/* Delete */}
-      {isOwner && onDelete && (
-        <div className="mt-3 flex justify-end">
+      {/* Actions */}
+      <div className="mt-3 flex justify-end gap-3">
+        {isOwner && onDelete && (
           <button
             onClick={() => onDelete(review.id)}
             className="flex items-center gap-1 text-xs text-red-400/60 transition-colors hover:text-red-400"
@@ -83,8 +85,18 @@ export function ReviewCard({
             <Trash2 className="size-3.5" />
             Eliminar
           </button>
-        </div>
-      )}
+        )}
+        {!isOwner && onReport && (
+          <button
+            onClick={() => onReport(review.id)}
+            className="flex items-center gap-1 text-xs text-muted-foreground/50 transition-colors hover:text-red-400"
+            aria-label="Reportar reseña"
+          >
+            <Flag className="size-3.5" />
+            Reportar
+          </button>
+        )}
+      </div>
     </article>
   );
 }

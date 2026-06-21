@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, User, Rss } from 'lucide-react';
+import { Menu, X, User, Rss, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { SearchInput } from '@/components/catalog/search-input';
 
@@ -85,6 +85,13 @@ export function Navbar() {
                 Feed
               </Link>
               <Link
+                href="/admin/reports"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+              >
+                <Shield className="size-4" />
+                Admin
+              </Link>
+              <Link
                 href="/profile"
                 className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
               >
@@ -144,6 +151,14 @@ export function Navbar() {
                 >
                   <Rss className="size-4" />
                   Feed
+                </Link>
+                <Link
+                  href="/admin/reports"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Shield className="size-4" />
+                  Admin
                 </Link>
                 <Link
                   href="/profile"

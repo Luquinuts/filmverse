@@ -21,6 +21,7 @@ import type {
   ListFilmInsert,
   FollowRow,
   RecommendationRow,
+  ReportWithReview,
 } from '@/lib/types';
 
 // ─── Profiles ───
@@ -712,4 +713,111 @@ export async function setDailyRecommendation(
     console.error('[store] setDailyRecommendation:', error);
     throw error;
   }
+}
+
+// ─── Reports ───
+
+export async function reportReview(
+  client: SupabaseClient,
+  reviewId: string,
+  reportedBy: string,
+  reason: string,
+): Promise<void> {
+  const { error } = await client.from('reports').insert({
+    review_id: reviewId,
+    reported_by: reportedBy,
+    reason,
+  });
+  if (error) {
+    console.error('[store] reportReview:', error);
+    throw error;
+  }
+}
+
+export async function getPendingReports(
+  client: SupabaseClient,
+): Promise<ReportWithReview[]> {
+  const { data, error } = await client
+    .from('reports')
+    .select('*, reviews(*)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[store] getPendingReports:', error);
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+export async function dismissReport(
+  client: SupabaseClient,
+  reportId: string,
+  adminId: string,
+): Promise<void> {
+  const { error } = await client
+    .from('reports')
+    .update({
+      status: 'dismissed',
+      reviewed_by: adminId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', reportId);
+
+  if (error) {
+    console.error('[store] dismissReport:', error);
+    throw error;
+  }
+}
+
+export async function adminDeleteReview(
+  client: SupabaseClient,
+  reviewId: string,
+  reportId: string,
+  adminId: string,
+): Promise<void> {
+  // Delete review
+  const { error: deleteError } = await client
+    .from('reviews')
+    .delete()
+    .eq('id', reviewId);
+
+  if (deleteError) {
+    console.error('[store] adminDeleteReview:', deleteError);
+    throw deleteError;
+  }
+
+  // Update report status
+  const { error: updateError } = await client
+    .from('reports')
+    .update({
+      status: 'reviewed',
+      reviewed_by: adminId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', reportId);
+
+  if (updateError) {
+    console.error('[store] adminDeleteReview (report update):', updateError);
+    throw updateError;
+  }
+}
+
+export async function isAdmin(
+  client: SupabaseClient,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await client
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('[store] isAdmin:', error);
+    return false;
+  }
+
+  return data?.role === 'admin';
 }

@@ -260,16 +260,19 @@ export interface Database {
           id: string;
           username: string;
           avatar_url: string | null;
+          role: string;
           created_at: string;
         };
         Insert: {
           id: string;
           username: string;
           avatar_url?: string | null;
+          role?: string;
         };
         Update: {
           username?: string;
           avatar_url?: string | null;
+          role?: string;
         };
       };
       reviews: {
@@ -404,6 +407,30 @@ export interface Database {
           recommendations?: unknown;
         };
       };
+      reports: {
+        Row: {
+          id: string;
+          review_id: string;
+          reported_by: string;
+          reason: string;
+          status: string;
+          created_at: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          review_id: string;
+          reported_by: string;
+          reason: string;
+          status?: string;
+        };
+        Update: {
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+        };
+      };
     };
   };
 }
@@ -421,3 +448,9 @@ export type ListFilmRow = Database['public']['Tables']['list_films']['Row'];
 export type ListFilmInsert = Database['public']['Tables']['list_films']['Insert'];
 export type FollowRow = Database['public']['Tables']['follows']['Row'];
 export type RecommendationRow = Database['public']['Tables']['recommendations']['Row'];
+export type ReportRow = Database['public']['Tables']['reports']['Row'];
+export type ReportInsert = Database['public']['Tables']['reports']['Insert'];
+
+export interface ReportWithReview extends ReportRow {
+  reviews: ReviewRow;
+}
