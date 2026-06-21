@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Menu, X, User, Rss, Shield } from 'lucide-react';
@@ -14,7 +14,17 @@ export function Navbar() {
   const [query, setQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState('');
+
+  const checkAdmin = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    setIsAdmin(data?.role === 'admin');
+  }, [supabase]);
 
   useEffect(() => {
     // Initial auth check
@@ -26,6 +36,7 @@ export function Navbar() {
             data.user.email?.split('@')[0] ??
             'Usuario',
         );
+        checkAdmin(data.user.id);
       }
     });
 
@@ -39,15 +50,17 @@ export function Navbar() {
               session.user.email?.split('@')[0] ??
               'Usuario',
           );
+          checkAdmin(session.user.id);
         } else {
           setIsLoggedIn(false);
+          setIsAdmin(false);
           setUsername('');
         }
       },
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, [supabase.auth, checkAdmin]);
 
   const handleSearch = () => {
     const trimmed = query.trim();
@@ -84,13 +97,15 @@ export function Navbar() {
                 <Rss className="size-4" />
                 Feed
               </Link>
-              <Link
-                href="/admin/reports"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
-              >
-                <Shield className="size-4" />
-                Admin
-              </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin/reports"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+                >
+                  <Shield className="size-4" />
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
@@ -152,14 +167,16 @@ export function Navbar() {
                   <Rss className="size-4" />
                   Feed
                 </Link>
-                <Link
-                  href="/admin/reports"
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Shield className="size-4" />
-                  Admin
-                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin/reports"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Shield className="size-4" />
+                    Admin
+                  </Link>
+                )}
                 <Link
                   href="/profile"
                   className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-cinema-gold"
