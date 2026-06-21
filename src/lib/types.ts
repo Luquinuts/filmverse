@@ -288,6 +288,7 @@ export interface Database {
           is_spoiler: boolean;
           created_at: string;
           updated_at: string;
+          deleted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -299,6 +300,7 @@ export interface Database {
           rating: number;
           content?: string;
           is_spoiler?: boolean;
+          deleted_at?: string | null;
         };
         Update: {
           film_title?: string;
@@ -307,6 +309,7 @@ export interface Database {
           rating?: number;
           content?: string;
           is_spoiler?: boolean;
+          deleted_at?: string | null;
         };
       };
       watchlist: {
@@ -430,6 +433,15 @@ export interface Database {
           reviewed_by?: string | null;
           reviewed_at?: string | null;
         };
+      };
+    };
+    Functions: {
+      admin_soft_delete_review: {
+        Args: {
+          p_review_id: string;
+          p_admin_id: string;
+        };
+        Returns: void;
       };
     };
   };

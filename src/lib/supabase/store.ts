@@ -66,7 +66,10 @@ export async function getReviews(
   client: SupabaseClient,
   userId?: string,
 ): Promise<ReviewRow[]> {
-  let query = client.from('reviews').select('*');
+  let query = client
+    .from('reviews')
+    .select('*')
+    .is('deleted_at', null);
 
   if (userId) {
     query = query.eq('user_id', userId);
@@ -90,6 +93,7 @@ export async function getFilmReviews(
     .from('reviews')
     .select('*')
     .eq('film_id', filmId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -110,6 +114,7 @@ export async function getUserRating(
     .select('*')
     .eq('user_id', userId)
     .eq('film_id', filmId)
+    .is('deleted_at', null)
     .maybeSingle();
 
   if (error) {
@@ -126,10 +131,11 @@ export async function saveReview(
   review: Omit<ReviewInsert, 'user_id'>,
 ): Promise<ReviewRow> {
   // Upsert: la constraint unique(user_id, film_id) evita duplicados por TOCTOU
+  // deleted_at: null reactiva una reseña previamente soft-deleteada
   const { data, error } = await client
     .from('reviews')
     .upsert(
-      { ...review, user_id: userId },
+      { ...review, user_id: userId, deleted_at: null },
       { onConflict: 'user_id, film_id' },
     )
     .select()
@@ -581,6 +587,7 @@ export async function getFeedReviews(
     .from('reviews')
     .select('*')
     .in('user_id', allIds)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -608,7 +615,8 @@ export async function getUserStats(
   const { data: reviews, error: reviewsError } = await client
     .from('reviews')
     .select('rating')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .is('deleted_at', null);
 
   if (reviewsError) {
     console.error('[store] getUserStats (reviews):', reviewsError);
@@ -777,15 +785,15 @@ export async function adminDeleteReview(
   reportId: string,
   adminId: string,
 ): Promise<void> {
-  // Delete review
-  const { error: deleteError } = await client
-    .from('reviews')
-    .delete()
-    .eq('id', reviewId);
+  // Soft delete via security definer function (bypasses RLS)
+  const { error: rpcError } = await client.rpc('admin_soft_delete_review', {
+    p_review_id: reviewId,
+    p_admin_id: adminId,
+  });
 
-  if (deleteError) {
-    console.error('[store] adminDeleteReview:', deleteError);
-    throw deleteError;
+  if (rpcError) {
+    console.error('[store] adminDeleteReview:', rpcError);
+    throw rpcError;
   }
 
   // Update report status
