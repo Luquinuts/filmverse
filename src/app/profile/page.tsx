@@ -16,36 +16,47 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { ReviewCard } from '@/components/reviews/review-card';
 import {
-  getUserReviews,
+  getReviews,
   getUserStats,
   getWatchlist,
   deleteReview,
-  type ReviewEntry,
-  type WatchlistEntry,
-} from '@/lib/local-store';
+} from '@/lib/supabase/store';
+import type { ReviewRow, WatchlistRow } from '@/lib/types';
 import { ListsTab } from '@/components/lists/lists-tab';
+
+interface ProfileStats {
+  reviewsCount: number;
+  watchlistCount: number;
+  averageRating: number;
+  listsCount: number;
+}
+
+const INITIAL_STATS: ProfileStats = {
+  reviewsCount: 0,
+  watchlistCount: 0,
+  averageRating: 0,
+  listsCount: 0,
+};
 
 type ProfileTab = 'reviews' | 'watchlist' | 'lists';
 
 export default function ProfilePage() {
   const router = useRouter();
   const supabase = useRef(createClient()).current;
-  const authChecked = useRef(false);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<ProfileTab>('reviews');
-  const [reviews, setReviews] = useState<ReviewEntry[]>([]);
-  const [watchlist, setWatchlist] = useState<WatchlistEntry[]>([]);
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [watchlist, setWatchlist] = useState<WatchlistRow[]>([]);
+  const [stats, setStats] = useState<ProfileStats>(INITIAL_STATS);
 
   useEffect(() => {
-    if (authChecked.current) return;
-    authChecked.current = true;
-
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
+        setLoading(false);
         router.push('/login?redirect=/profile');
         return;
       }
@@ -57,8 +68,25 @@ export default function ProfilePage() {
           'Usuario',
       );
       setEmail(data.user.email ?? '');
-      setReviews(getUserReviews(uid));
-      setWatchlist(getWatchlist());
+
+      const [reviewsResult, watchlistResult, statsResult] = await Promise.allSettled([
+        getReviews(supabase, uid),
+        getWatchlist(supabase, uid),
+        getUserStats(supabase, uid),
+      ]);
+
+      if (reviewsResult.status === 'fulfilled') setReviews(reviewsResult.value);
+      else console.error('[profile] reviews:', reviewsResult.reason);
+
+      if (watchlistResult.status === 'fulfilled') setWatchlist(watchlistResult.value);
+      else console.error('[profile] watchlist:', watchlistResult.reason);
+
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+      else console.error('[profile] stats:', statsResult.reason);
+
+      setLoading(false);
+    }).catch((err) => {
+      console.error('[profile] auth:', err);
       setLoading(false);
     });
   }, [router, supabase.auth]);
@@ -71,9 +99,13 @@ export default function ProfilePage() {
     router.refresh();
   };
 
-  const handleDeleteReview = (reviewId: string) => {
-    deleteReview(reviewId);
-    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+  const handleDeleteReview = async (reviewId: string) => {
+    try {
+      await deleteReview(supabase, reviewId);
+      setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+    } catch (err) {
+      console.error('[profile] deleteReview:', err);
+    }
   };
 
   if (loading) {
@@ -87,8 +119,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-
-  const stats = getUserStats(userId!);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -229,31 +259,31 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
               {watchlist.map((entry) => (
                 <Link
-                  key={entry.filmId}
-                  href={`/film/${entry.filmId}`}
+                  key={entry.film_id}
+                  href={`/film/${entry.film_id}`}
                   className="group"
                 >
                   <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-glass-bg">
-                    {entry.filmPoster ? (
+                    {entry.film_poster ? (
                       <Image
-                        src={`https://image.tmdb.org/t/p/w342${entry.filmPoster}`}
-                        alt={entry.filmTitle}
+                        src={`https://image.tmdb.org/t/p/w342${entry.film_poster}`}
+                        alt={entry.film_title}
                         fill
                         className="object-cover transition-transform group-hover:scale-105"
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                       />
                     ) : (
                       <div className="flex size-full items-center justify-center text-muted-foreground text-xs p-2 text-center">
-                        {entry.filmTitle}
+                        {entry.film_title}
                       </div>
                     )}
                   </div>
                   <p className="mt-2 text-sm text-white truncate group-hover:text-cinema-gold transition-colors">
-                    {entry.filmTitle}
+                    {entry.film_title}
                   </p>
-                  {entry.filmYear && (
+                  {entry.film_year && (
                     <p className="text-xs text-muted-foreground">
-                      {entry.filmYear}
+                      {entry.film_year}
                     </p>
                   )}
                 </Link>
@@ -276,7 +306,7 @@ export default function ProfilePage() {
         </>
       )}
 
-      {tab === 'lists' && <ListsTab />}
+      {tab === 'lists' && <ListsTab userId={userId!} />}
     </div>
   );
 }

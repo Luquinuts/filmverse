@@ -2,38 +2,38 @@
 
 ## Propósito
 
-Usuarios DEBEN poder crear listas con nombre, agregar/remover películas, y
-navegar cada lista en una ruta dedicada. Extiende el perfil con un tercer tab.
+Usuarios DEBEN poder crear listas con nombre, agregar/remover películas, y navegar cada lista en una ruta dedicada. Los datos persisten en `public.custom_lists` y `public.list_films` con RLS.
 
 ## Datos
 
-Almacenamiento bajo clave `filmverse_custom_lists` en localStorage.
+| Concepto | Detalle |
+|----------|---------|
+| Tablas | `public.custom_lists`, `public.list_films` |
+| IDs | UUID generados por `gen_random_uuid()` |
+| `is_public` | `boolean`, default `false` |
+| RLS | Solo dueño ve y modifica listas |
+| CASCADE | `DELETE list` elimina `list_films` asociados |
+| Store | Asíncrono via `src/lib/supabase/store.ts` |
 
-| Tipo | Campos |
-|------|--------|
-| `UserCustomList` | `id: string`, `name: string`, `description?: string`, `createdAt: ISO` |
-| `UserListFilm` | `listId: string`, `filmId: number`, `filmTitle`, `filmPoster?`, `filmYear?`, `addedAt: ISO` |
+## Contrato de API
 
-CRUD: `getLists`, `getListById`, `createList`, `deleteList`, `renameList`,
-`addFilmToList`, `removeFilmFromList`. Misma convención denormalizada que watchlist.
+| Función | Input | Output |
+|---------|-------|--------|
+| `getLists(client, userId)` | `SupabaseClient, string` | `CustomListRow[]` |
+| `getListById(client, listId)` | `SupabaseClient, string` | `{ list: CustomListRow; films: ListFilmRow[] } \| null` |
+| `createList(client, userId, name, description?)` | `SupabaseClient, string, string, string?` | `CustomListRow` |
+| `deleteList(client, listId)` | `SupabaseClient, string` | `void` |
+| `addFilmToList(client, film)` | `SupabaseClient, ListFilmInsert` | `void` |
+| `removeFilmFromList(client, listId, filmId)` | `SupabaseClient, string, number` | `void` |
+| `isFilmInList(client, listId, filmId)` | `SupabaseClient, string, number` | `boolean` |
+| `getFilmLists(client, userId, filmId)` | `SupabaseClient, string, number` | `(CustomListRow & { list_films: ListFilmRow[] })[]` |
+| `getListFilmCounts(client, userId)` | `SupabaseClient, string` | `Record<string, number>` |
 
-#### Escenario: Ciclo de vida
-- GIVEN sin listas
-- WHEN `createList("Clásicos")` → `getLists()` DEBE devolver 1 lista
-- WHEN `addFilmToList(id, {filmId: 1, filmTitle: "El Padrino", ...})` → `getListById(id)` incluye el film
-- WHEN `removeFilmFromList(id, 1)` → la lista ya no contiene filmId=1
-- WHEN `deleteList(id)` → lista y todos sus `UserListFilm` eliminados (cascada)
+## UI Components
 
-#### Escenario: Nombres duplicados
-- GIVEN dos listas con `name: "Favoritas"`
-- THEN se distinguen por `id`, no por `name`
+### Perfil — Pestaña "Mis Listas"
 
-## Perfil — Pestaña "Mis Listas"
-
-### Requerimiento: Tercer tab
-
-El perfil DEBE tener un tab "Mis Listas". El contador de stats DEBE totalizar
-también la cantidad de listas.
+El perfil DEBE tener un tab "Mis Listas". El contador de stats DEBE totalizar también la cantidad de listas.
 
 #### Escenario: Grilla de listas
 - GIVEN el usuario tiene 3 listas
@@ -46,12 +46,9 @@ también la cantidad de listas.
 - WHEN ve "Mis Listas"
 - THEN ve "Todavía no creaste ninguna lista"
 
-## Detalle de Película — Agregar a Lista
+### Detalle de Película — Agregar a Lista
 
-### Requerimiento: Botón + dialog
-
-`/film/[id]` DEBE mostrar "Agregar a lista..." que abre un Dialog con checkboxes
-por lista y un campo para crear lista nueva.
+`/film/[id]` DEBE mostrar "Agregar a lista..." que abre un Dialog con checkboxes por lista y un campo para crear lista nueva.
 
 #### Escenario: Checkbox refleja pertenencia
 - GIVEN dialog abierto para una película
@@ -65,12 +62,9 @@ por lista y un campo para crear lista nueva.
 - THEN se crea la lista Y el film actual se agrega automáticamente
 - WHEN input vacío o solo espacios → botón DEBE estar deshabilitado
 
-## Página `/lists/[listId]`
+### Página `/lists/[listId]`
 
-### Requerimiento: Ruta dedicada
-
-DEBE mostrar header (nombre, descripción, film count, "Eliminar lista") y grilla
-responsive de posters.
+DEBE mostrar header (nombre, descripción, film count, "Eliminar lista") y grilla responsive de posters.
 
 #### Escenario: Lista con películas
 - GIVEN lista con 4 films
@@ -105,3 +99,13 @@ responsive de posters.
 | Empty state lista | "Esta lista está vacía. Agregá películas desde la página de cada film." |
 | Empty state perfil | "Todavía no creaste ninguna lista" |
 | No encontrada | "Lista no encontrada" |
+
+## Scenarios de verificación
+
+| # | Escenario | Expectativa |
+|---|-----------|-------------|
+| 1 | Ciclo de vida completo | CRUD funciona contra `public.custom_lists` + `public.list_films` |
+| 2 | CASCADE al borrar lista | DELETE elimina `list_films` asociados |
+| 3 | RLS propietario | Usuario B intenta acceder lista de A → 0 filas |
+| 4 | Nombres duplicados | Dos listas con mismo `name` se distinguen por `id` |
+| 5 | Lista vacía | Empty state sin errores |

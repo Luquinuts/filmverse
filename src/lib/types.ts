@@ -250,86 +250,174 @@ export interface MercadoPagoWebhookEvent {
 }
 
 // ─── Tipos Supabase (Database interface) ───
+// Schema basado en supabase/migration.sql
 
 export interface Database {
   public: {
     Tables: {
-      users: {
-        Row: User;
-        Insert: Omit<User, 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<User, 'id' | 'created_at'>>;
-      };
-      films: {
-        Row: Film;
-        Insert: Omit<Film, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Film, 'id' | 'tmdb_id'>>;
-      };
-      watched_films: {
-        Row: WatchedFilm;
-        Insert: Omit<WatchedFilm, 'id' | 'watched_at'>;
-        Update: Partial<Omit<WatchedFilm, 'id'>>;
-      };
-      watchlist_films: {
-        Row: WatchlistFilm;
-        Insert: Omit<WatchlistFilm, 'id' | 'added_at'>;
-        Update: Partial<Omit<WatchlistFilm, 'id'>>;
+      profiles: {
+        Row: {
+          id: string;
+          username: string;
+          avatar_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          username: string;
+          avatar_url?: string | null;
+        };
+        Update: {
+          username?: string;
+          avatar_url?: string | null;
+        };
       };
       reviews: {
-        Row: Review;
-        Insert: Omit<Review, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Review, 'id'>>;
+        Row: {
+          id: string;
+          user_id: string;
+          film_id: number;
+          film_title: string;
+          film_year: number | null;
+          film_poster: string | null;
+          rating: number;
+          content: string;
+          is_spoiler: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          film_id: number;
+          film_title: string;
+          film_year?: number | null;
+          film_poster?: string | null;
+          rating: number;
+          content?: string;
+          is_spoiler?: boolean;
+        };
+        Update: {
+          film_title?: string;
+          film_year?: number | null;
+          film_poster?: string | null;
+          rating?: number;
+          content?: string;
+          is_spoiler?: boolean;
+        };
       };
-      ratings: {
-        Row: Rating;
-        Insert: Omit<Rating, 'id' | 'created_at'>;
-        Update: Partial<Omit<Rating, 'id'>>;
+      watchlist: {
+        Row: {
+          id: string;
+          user_id: string;
+          film_id: number;
+          film_title: string;
+          film_year: number | null;
+          film_poster: string | null;
+          added_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          film_id: number;
+          film_title: string;
+          film_year?: number | null;
+          film_poster?: string | null;
+        };
+        Update: {
+          film_title?: string;
+          film_year?: number | null;
+          film_poster?: string | null;
+        };
       };
       custom_lists: {
-        Row: CustomList;
-        Insert: Omit<CustomList, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<CustomList, 'id'>>;
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string;
+        };
+        Update: {
+          name?: string;
+          description?: string;
+        };
       };
       list_films: {
-        Row: ListFilm;
-        Insert: Omit<ListFilm, 'id' | 'added_at'>;
-        Update: Partial<Omit<ListFilm, 'id'>>;
+        Row: {
+          id: string;
+          list_id: string;
+          film_id: number;
+          film_title: string;
+          film_poster: string | null;
+          film_year: number | null;
+          added_at: string;
+        };
+        Insert: {
+          id?: string;
+          list_id: string;
+          film_id: number;
+          film_title: string;
+          film_poster?: string | null;
+          film_year?: number | null;
+        };
+        Update: {
+          film_title?: string;
+          film_poster?: string | null;
+          film_year?: number | null;
+        };
       };
       follows: {
-        Row: Follow;
-        Insert: Omit<Follow, 'id' | 'created_at'>;
-        Update: Partial<Omit<Follow, 'id'>>;
+        Row: {
+          follower_id: string;
+          following_id: string;
+          created_at: string;
+        };
+        Insert: {
+          follower_id: string;
+          following_id: string;
+        };
+        Update: Record<string, never>;
       };
-      likes: {
-        Row: Like;
-        Insert: Omit<Like, 'id' | 'created_at'>;
-        Update: Partial<Omit<Like, 'id'>>;
+      recommendations: {
+        Row: {
+          id: string;
+          user_id: string;
+          report_date: string;
+          recommendations: unknown;
+          generated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          report_date: string;
+          recommendations?: unknown;
+        };
+        Update: {
+          recommendations?: unknown;
+        };
       };
-      reports: {
-        Row: Report;
-        Insert: Omit<Report, 'id' | 'resolved' | 'created_at' | 'resolved_at'>;
-        Update: Partial<Omit<Report, 'id'>>;
-      };
-      premium_subscriptions: {
-        Row: PremiumSubscription;
-        Insert: Omit<PremiumSubscription, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<PremiumSubscription, 'id'>>;
-      };
-      chat_sessions: {
-        Row: ChatSession;
-        Insert: Omit<ChatSession, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<ChatSession, 'id'>>;
-      };
-      daily_reports: {
-        Row: DailyReport;
-        Insert: Omit<DailyReport, 'id' | 'created_at'>;
-        Update: Partial<Omit<DailyReport, 'id'>>;
-      };
-    };
-    Enums: {
-      user_role: UserRole;
-      subscription_status: SubscriptionStatus;
-      report_reason: ReportReason;
-      like_target_type: LikeTargetType;
     };
   };
 }
+
+// ─── Type Aliases (row types for CRUD operations) ───
+
+export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+export type ReviewRow = Database['public']['Tables']['reviews']['Row'];
+export type ReviewInsert = Database['public']['Tables']['reviews']['Insert'];
+export type WatchlistRow = Database['public']['Tables']['watchlist']['Row'];
+export type WatchlistInsert = Database['public']['Tables']['watchlist']['Insert'];
+export type CustomListRow = Database['public']['Tables']['custom_lists']['Row'];
+export type CustomListInsert = Database['public']['Tables']['custom_lists']['Insert'];
+export type ListFilmRow = Database['public']['Tables']['list_films']['Row'];
+export type ListFilmInsert = Database['public']['Tables']['list_films']['Insert'];
+export type FollowRow = Database['public']['Tables']['follows']['Row'];
+export type RecommendationRow = Database['public']['Tables']['recommendations']['Row'];

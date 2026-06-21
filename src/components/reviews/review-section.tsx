@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { MessageSquareText } from 'lucide-react';
 import { ReviewForm } from './review-form';
 import { ReviewCard } from './review-card';
+import { createClient } from '@/lib/supabase/client';
 import {
   getFilmReviews,
   saveReview,
   deleteReview,
   getUserRating,
-  type ReviewEntry,
-} from '@/lib/local-store';
+} from '@/lib/supabase/store';
+import type { ReviewRow } from '@/lib/types';
 
 interface ReviewSectionProps {
   filmId: number;
@@ -29,40 +30,61 @@ export function ReviewSection({
   userId,
   username,
 }: ReviewSectionProps) {
-  const [reviews, setReviews] = useState<ReviewEntry[]>([]);
+  const supabase = useRef(createClient()).current;
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [existingReview, setExistingReview] = useState<ReviewRow | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const loadReviews = useCallback(() => {
-    setReviews(getFilmReviews(filmId));
-  }, [filmId]);
+  const loadReviews = useCallback(async () => {
+    try {
+      const [reviewData, userRating] = await Promise.all([
+        getFilmReviews(supabase, filmId),
+        getUserRating(supabase, userId, filmId),
+      ]);
+      setReviews(reviewData);
+      setExistingReview(userRating);
+    } catch (err) {
+      console.error('[review-section] loadReviews:', err);
+    }
+  }, [supabase, filmId, userId]);
 
   useEffect(() => {
     loadReviews();
   }, [loadReviews]);
 
-  const existing = getUserRating(filmId, userId);
-  const existingReview = reviews.find((r) => r.userId === userId);
-
-  const handleSave = (data: { rating: number; content: string; isSpoiler: boolean }) => {
-    saveReview({
-      filmId,
-      filmTitle,
-      filmPoster,
-      filmYear,
-      userId,
-      username,
-      ...data,
-    });
-    setShowForm(false);
-    loadReviews();
+  const handleSave = async (data: {
+    rating: number;
+    content: string;
+    isSpoiler: boolean;
+  }) => {
+    try {
+      const reviewInsert = {
+        film_id: filmId,
+        film_title: filmTitle,
+        film_poster: filmPoster,
+        film_year: filmYear,
+        rating: data.rating,
+        content: data.content,
+        is_spoiler: data.isSpoiler,
+      };
+      await saveReview(supabase, userId, reviewInsert);
+      setShowForm(false);
+      loadReviews();
+    } catch (err) {
+      console.error('[review-section] handleSave:', err);
+    }
   };
 
-  const handleDelete = (reviewId: string) => {
-    deleteReview(reviewId);
-    loadReviews();
+  const handleDelete = async (reviewId: string) => {
+    try {
+      await deleteReview(supabase, reviewId);
+      loadReviews();
+    } catch (err) {
+      console.error('[review-section] handleDelete:', err);
+    }
   };
 
-  const otherReviews = reviews.filter((r) => r.userId !== userId);
+  const otherReviews = reviews.filter((r) => r.user_id !== userId);
 
   return (
     <section>
@@ -76,9 +98,9 @@ export function ReviewSection({
         <div className="mb-8">
           {showForm ? (
             <ReviewForm
-              existingRating={existing}
+              existingRating={existingReview?.rating ?? null}
               existingContent={existingReview?.content ?? null}
-              existingSpoiler={existingReview?.isSpoiler ?? false}
+              existingSpoiler={existingReview?.is_spoiler ?? false}
               onSave={handleSave}
               onCancel={() => setShowForm(false)}
             />
@@ -88,6 +110,7 @@ export function ReviewSection({
                 review={existingReview}
                 isOwner
                 onDelete={handleDelete}
+                username={username}
               />
               <button
                 onClick={() => setShowForm(true)}
