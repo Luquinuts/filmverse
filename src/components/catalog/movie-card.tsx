@@ -65,7 +65,7 @@ export function MovieCard({ movie, priority = false }: MovieCardProps) {
           {year ? <span>{year}</span> : <span />}
           <span className="flex items-center gap-1">
             <Star className="size-3 fill-cinema-gold text-cinema-gold" />
-            {movie.vote_average.toFixed(1)}
+            {movie.vote_average ? movie.vote_average.toFixed(1) : '—'}
           </span>
         </div>
       </div>

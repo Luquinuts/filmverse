@@ -218,7 +218,7 @@ export default function FilmDetailPage({
               )}
               <span className="flex items-center gap-1">
                 <Star className="size-4 fill-cinema-gold text-cinema-gold" />
-                {movie.vote_average.toFixed(1)}
+                {movie.vote_average ? movie.vote_average.toFixed(1) : '—'}
               </span>
             </div>
 
