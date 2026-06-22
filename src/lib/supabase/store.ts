@@ -22,6 +22,7 @@ import type {
   FollowRow,
   RecommendationRow,
   ReportWithReview,
+  PremiumSubscriptionRow,
 } from '@/lib/types';
 
 // ─── Profiles ───
@@ -828,4 +829,158 @@ export async function isAdmin(
   }
 
   return data?.role === 'admin';
+}
+
+// ─── Premium Subscriptions ───
+
+export type SubscriptionAction = 'activate' | 'cancel' | 'expire';
+
+/**
+ * Obtiene la suscripción de un usuario (independientemente del estado).
+ * Para verificar si está activa, chequea `status === 'active'` en el resultado.
+ */
+export async function getUserSubscription(
+  client: SupabaseClient,
+  userId: string,
+): Promise<PremiumSubscriptionRow | null> {
+  const { data, error } = await client
+    .from('premium_subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[store] getUserSubscription:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Busca una suscripción por su ID de Mercado Pago (para webhooks).
+ */
+export async function getSubscriptionByMpId(
+  client: SupabaseClient,
+  mpSubscriptionId: string,
+): Promise<PremiumSubscriptionRow | null> {
+  const { data, error } = await client
+    .from('premium_subscriptions')
+    .select('*')
+    .eq('mercadopago_subscription_id', mpSubscriptionId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[store] getSubscriptionByMpId:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Cancela la suscripción de un usuario en la base de datos.
+ * Marca como 'cancelled' y revierte el rol a 'cinefilo'.
+ * Para cancelar también en Mercado Pago, el llamante debe hacer la
+ * llamada a la API de MP antes o después de esta función.
+ */
+export async function cancelSubscription(
+  client: SupabaseClient,
+  userId: string,
+): Promise<void> {
+  await updateSubscriptionAndRole(client, userId, 'cancel');
+}
+
+/**
+ * Helper atómico que actualiza suscripción y rol del perfil en una sola
+ * operación lógica. Usado por webhooks y cancelaciones.
+ *
+ * - 'activate': INSERT suscripción activa + UPDATE role = 'premium'
+ * - 'cancel': UPDATE status = 'cancelled', end_date = now() + UPDATE role = 'cinefilo'
+ * - 'expire': UPDATE status = 'expired', end_date = now() + UPDATE role = 'cinefilo'
+ *
+ * Requiere un cliente con permisos de escritura (service_role o SECURITY DEFINER).
+ *
+ * @param client - Cliente Supabase con permisos de escritura (admin client)
+ * @param userId - ID del usuario objetivo
+ * @param action - Acción a ejecutar
+ * @param mercadopagoSubscriptionId - Solo para 'activate': ID de la suscripción en MP
+ */
+export async function updateSubscriptionAndRole(
+  client: SupabaseClient,
+  userId: string,
+  action: SubscriptionAction,
+  mercadopagoSubscriptionId?: string,
+): Promise<void> {
+  if (action === 'activate') {
+    // Insert o upsert: si ya existe una suscripción, actualizarla
+    const existing = await getUserSubscription(client, userId);
+
+    if (existing) {
+      const { error: subError } = await client
+        .from('premium_subscriptions')
+        .update({
+          status: 'active',
+          mercadopago_subscription_id: mercadopagoSubscriptionId ?? existing.mercadopago_subscription_id,
+          end_date: null,
+        })
+        .eq('user_id', userId);
+
+      if (subError) {
+        console.error('[store] updateSubscriptionAndRole (update sub):', subError);
+        throw subError;
+      }
+    } else {
+      const { error: subError } = await client
+        .from('premium_subscriptions')
+        .insert({
+          user_id: userId,
+          status: 'active',
+          mercadopago_subscription_id: mercadopagoSubscriptionId ?? null,
+          start_date: new Date().toISOString(),
+        });
+
+      if (subError) {
+        console.error('[store] updateSubscriptionAndRole (insert):', subError);
+        throw subError;
+      }
+    }
+
+    const { error: profileError } = await client
+      .from('profiles')
+      .update({ role: 'premium' })
+      .eq('id', userId);
+
+    if (profileError) {
+      console.error('[store] updateSubscriptionAndRole (profile role):', profileError);
+      throw profileError;
+    }
+    return;
+  }
+
+  // cancel o expire
+  const status = action === 'cancel' ? 'cancelled' : 'expired';
+
+  const { error: subError } = await client
+    .from('premium_subscriptions')
+    .update({
+      status,
+      end_date: new Date().toISOString(),
+    })
+    .eq('user_id', userId);
+
+  if (subError) {
+    console.error(`[store] updateSubscriptionAndRole (${action} sub):`, subError);
+    throw subError;
+  }
+
+  const { error: profileError } = await client
+    .from('profiles')
+    .update({ role: 'cinefilo' })
+    .eq('id', userId);
+
+  if (profileError) {
+    console.error(`[store] updateSubscriptionAndRole (${action} profile):`, profileError);
+    throw profileError;
+  }
 }

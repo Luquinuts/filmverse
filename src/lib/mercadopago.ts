@@ -12,6 +12,7 @@ import type {
   Preference,
   MercadoPagoWebhookEvent,
 } from '@/lib/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const MP_API_BASE_URL = 'https://api.mercadopago.com';
 
@@ -224,7 +225,10 @@ export class MercadoPagoClient {
    *
    * @param event - Evento de webhook recibido
    */
-  async handleWebhook(event: MercadoPagoWebhookEvent): Promise<void> {
+  async handleWebhook(
+    event: MercadoPagoWebhookEvent,
+    adminClient?: SupabaseClient,
+  ): Promise<void> {
     console.info(
       `[MercadoPago] Webhook recibido: ${event.type} / ${event.action}`,
       `Data ID: ${event.data.id}`,
@@ -233,19 +237,19 @@ export class MercadoPagoClient {
     switch (event.type) {
       case 'subscription_created':
       case 'subscription_authorized':
-        await this.handleSubscriptionActivated(event);
+        await this.handleSubscriptionActivated(event, adminClient);
         break;
 
       case 'subscription_cancelled':
-        await this.handleSubscriptionCancelled(event);
+        await this.handleSubscriptionCancelled(event, adminClient);
         break;
 
       case 'subscription_expired':
-        await this.handleSubscriptionExpired(event);
+        await this.handleSubscriptionExpired(event, adminClient);
         break;
 
       case 'subscription_updated':
-        await this.handleSubscriptionUpdated(event);
+        await this.handleSubscriptionUpdated(event, adminClient);
         break;
 
       case 'payment':
@@ -271,15 +275,31 @@ export class MercadoPagoClient {
    */
   private async handleSubscriptionActivated(
     event: MercadoPagoWebhookEvent,
+    adminClient?: SupabaseClient,
   ): Promise<void> {
     console.info(
       `[MercadoPago] Suscripción activada: ${event.data.id}`,
     );
-    // PR 2: const userId = await this.resolveUserId(event);
-    // PR 2: await updateSubscriptionAndRole(adminClient, userId, {
-    // PR 2:   status: 'active',
-    // PR 2:   mercadopago_subscription_id: event.data.id,
-    // PR 2: });
+
+    if (!adminClient) return;
+
+    try {
+      // Resolver userId desde el preapproval de MP (external_reference)
+      const preapproval = await this.fetchPreapproval(event.data.id);
+      const userId = preapproval?.external_reference;
+
+      if (!userId) {
+        console.warn(
+          `[MercadoPago] No se pudo resolver userId para preapproval ${event.data.id}`,
+        );
+        return;
+      }
+
+      const { updateSubscriptionAndRole } = await import('@/lib/supabase/store');
+      await updateSubscriptionAndRole(adminClient, userId, 'activate', event.data.id);
+    } catch (err) {
+      console.error('[MercadoPago] Error en handleSubscriptionActivated:', err);
+    }
   }
 
   /**
@@ -292,12 +312,32 @@ export class MercadoPagoClient {
    */
   private async handleSubscriptionCancelled(
     event: MercadoPagoWebhookEvent,
+    adminClient?: SupabaseClient,
   ): Promise<void> {
     console.info(
       `[MercadoPago] Suscripción cancelada: ${event.data.id}`,
     );
-    // PR 2: const userId = await this.resolveUserId(event);
-    // PR 2: await cancelSubscription(adminClient, userId);
+
+    if (!adminClient) return;
+
+    try {
+      // Buscar userId en nuestra BD por mercadopago_subscription_id
+      const { getSubscriptionByMpId, updateSubscriptionAndRole } =
+        await import('@/lib/supabase/store');
+
+      const sub = await getSubscriptionByMpId(adminClient, event.data.id);
+
+      if (!sub) {
+        console.warn(
+          `[MercadoPago] No se encontró suscripción local para MP ID ${event.data.id}`,
+        );
+        return;
+      }
+
+      await updateSubscriptionAndRole(adminClient, sub.user_id, 'cancel');
+    } catch (err) {
+      console.error('[MercadoPago] Error en handleSubscriptionCancelled:', err);
+    }
   }
 
   /**
@@ -309,14 +349,31 @@ export class MercadoPagoClient {
    */
   private async handleSubscriptionExpired(
     event: MercadoPagoWebhookEvent,
+    adminClient?: SupabaseClient,
   ): Promise<void> {
     console.info(
       `[MercadoPago] Suscripción expirada: ${event.data.id}`,
     );
-    // PR 2: const userId = await this.resolveUserId(event);
-    // PR 2: await updateSubscriptionAndRole(adminClient, userId, {
-    // PR 2:   status: 'expired',
-    // PR 2: });
+
+    if (!adminClient) return;
+
+    try {
+      const { getSubscriptionByMpId, updateSubscriptionAndRole } =
+        await import('@/lib/supabase/store');
+
+      const sub = await getSubscriptionByMpId(adminClient, event.data.id);
+
+      if (!sub) {
+        console.warn(
+          `[MercadoPago] No se encontró suscripción local para MP ID ${event.data.id}`,
+        );
+        return;
+      }
+
+      await updateSubscriptionAndRole(adminClient, sub.user_id, 'expire');
+    } catch (err) {
+      console.error('[MercadoPago] Error en handleSubscriptionExpired:', err);
+    }
   }
 
   /**
@@ -326,12 +383,35 @@ export class MercadoPagoClient {
    */
   private async handleSubscriptionUpdated(
     event: MercadoPagoWebhookEvent,
+    adminClient?: SupabaseClient,
   ): Promise<void> {
     console.info(
       `[MercadoPago] Suscripción actualizada (no terminal): ${event.data.id}`,
     );
-    // PR 2: const userId = await this.resolveUserId(event);
-    // PR 2: await getUserSubscription(adminClient, userId); // sync estado actual
+
+    if (!adminClient) return;
+
+    try {
+      const { getSubscriptionByMpId, getUserSubscription } =
+        await import('@/lib/supabase/store');
+
+      const sub = await getSubscriptionByMpId(adminClient, event.data.id);
+
+      if (!sub) {
+        console.warn(
+          `[MercadoPago] No se encontró suscripción local para MP ID ${event.data.id} — puede ser un evento tardío`,
+        );
+        return;
+      }
+
+      // Refrescar el estado actual desde la BD (sincronización)
+      const current = await getUserSubscription(adminClient, sub.user_id);
+      console.info(
+        `[MercadoPago] Estado actual de suscripción ${sub.user_id}: ${current?.status ?? 'sin datos'}`,
+      );
+    } catch (err) {
+      console.error('[MercadoPago] Error en handleSubscriptionUpdated:', err);
+    }
   }
 
   // ─── Manejador de pagos ───
@@ -422,6 +502,81 @@ export class MercadoPagoClient {
       .join('');
 
     return computedHash === receivedHash;
+  }
+
+  // ─── Operaciones sobre suscripciones existentes ───
+
+  /**
+   * Obtiene los detalles de un preapproval de Mercado Pago.
+   * Usado por webhooks para resolver el userId desde external_reference.
+   *
+   * @param preapprovalId - ID del preapproval en MP (ej: "2c938084...")
+   * @returns Datos del preapproval o null si falla
+   */
+  private async fetchPreapproval(
+    preapprovalId: string,
+  ): Promise<{ external_reference: string } | null> {
+    if (!this.accessToken) {
+      console.warn('[MercadoPago] fetchPreapproval: sin token');
+      return null;
+    }
+
+    try {
+      const response = await fetch(
+        `${MP_API_BASE_URL}/preapproval/${preapprovalId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        console.warn(
+          `[MercadoPago] Error al obtener preapproval ${preapprovalId}: ${response.status}`,
+        );
+        return null;
+      }
+
+      return response.json() as Promise<{ external_reference: string }>;
+    } catch (err) {
+      console.error('[MercadoPago] fetchPreapproval falló:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Cancela una suscripción recurrente en Mercado Pago.
+   *
+   * Llama a `PUT /preapproval/{id}` con `status: 'cancelled'`.
+   * La cancelación en la BD se maneja por separado vía store.
+   *
+   * @param preapprovalId - ID de la suscripción en MP
+   */
+  async cancelPreapproval(preapprovalId: string): Promise<void> {
+    if (!this.accessToken) {
+      console.warn('[MercadoPago] cancelPreapproval: sin token, omitiendo');
+      return;
+    }
+
+    const response = await fetch(
+      `${MP_API_BASE_URL}/preapproval/${preapprovalId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+        body: JSON.stringify({ status: 'cancelled' }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new MercadoPagoApiError(
+        `Error al cancelar preapproval ${preapprovalId}: ${response.statusText}`,
+        response.status,
+      );
+    }
   }
 
   // ─── Helpers privados ───

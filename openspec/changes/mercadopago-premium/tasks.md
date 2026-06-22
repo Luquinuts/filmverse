@@ -37,15 +37,15 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Store Layer
 
-- [ ] 3.1 Add `getUserSubscription(client, userId)` to `src/lib/supabase/store.ts`
-- [ ] 3.2 Add `cancelSubscription(userId)` to store using admin client (service_role)
-- [ ] 3.3 Add `updateSubscriptionAndRole()` internal helper for webhook atomic writes
+- [x] 3.1 Add `getUserSubscription(client, userId)` to `src/lib/supabase/store.ts`
+- [x] 3.2 Add `cancelSubscription(userId)` to store using admin client (service_role)
+- [x] 3.3 Add `updateSubscriptionAndRole()` internal helper for webhook atomic writes
 
 ## Phase 4: API Routes
 
-- [ ] 4.1 Create `src/app/api/premium/create-preference/route.ts` — auth → create preapproval → return init_point
-- [ ] 4.2 Create `src/app/api/premium/webhook/route.ts` — raw body parser → HMAC verify → process event
-- [ ] 4.3 Create `src/app/api/premium/cancel/route.ts` — auth → cancel MP sub → update DB
+- [x] 4.1 Create `src/app/api/premium/create-preference/route.ts` — auth → create preapproval → return init_point
+- [x] 4.2 Create `src/app/api/premium/webhook/route.ts` — raw body parser → HMAC verify → process event
+- [x] 4.3 Create `src/app/api/premium/cancel/route.ts` — auth → cancel MP sub → update DB
 
 ## Phase 5: Frontend Pages
 
