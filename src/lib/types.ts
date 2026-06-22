@@ -5,7 +5,7 @@
 // ─── Enums como tipos literales ───
 
 export type UserRole = 'cinefilo' | 'premium' | 'moderador' | 'admin';
-export type SubscriptionStatus = 'active' | 'expired' | 'cancelled';
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'past_due';
 export type ReportReason =
   | 'spam'
   | 'inappropriate'
@@ -122,12 +122,12 @@ export interface Report {
 }
 
 export interface PremiumSubscription {
-  id: number;
+  id: string;
   user_id: string;
   status: SubscriptionStatus;
+  mercadopago_subscription_id: string | null;
   start_date: string;
   end_date: string | null;
-  mercadopago_subscription_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -392,6 +392,31 @@ export interface Database {
         };
         Update: Record<string, never>;
       };
+      premium_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: string;
+          mercadopago_subscription_id: string | null;
+          start_date: string;
+          end_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          status?: string;
+          mercadopago_subscription_id?: string | null;
+          start_date?: string;
+          end_date?: string | null;
+        };
+        Update: {
+          status?: string;
+          mercadopago_subscription_id?: string | null;
+          end_date?: string | null;
+        };
+      };
       recommendations: {
         Row: {
           id: string;
@@ -459,6 +484,8 @@ export type CustomListInsert = Database['public']['Tables']['custom_lists']['Ins
 export type ListFilmRow = Database['public']['Tables']['list_films']['Row'];
 export type ListFilmInsert = Database['public']['Tables']['list_films']['Insert'];
 export type FollowRow = Database['public']['Tables']['follows']['Row'];
+export type PremiumSubscriptionRow = Database['public']['Tables']['premium_subscriptions']['Row'];
+export type PremiumSubscriptionInsert = Database['public']['Tables']['premium_subscriptions']['Insert'];
 export type RecommendationRow = Database['public']['Tables']['recommendations']['Row'];
 export type ReportRow = Database['public']['Tables']['reports']['Row'];
 export type ReportInsert = Database['public']['Tables']['reports']['Insert'];
