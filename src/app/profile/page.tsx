@@ -93,7 +93,7 @@ export default function ProfilePage() {
       if (statsResult.status === 'fulfilled') setStats(statsResult.value);
       else console.error('[profile] stats:', statsResult.reason);
 
-      if (roleResult.status === 'fulfilled') setRole(roleResult.value?.role ?? null);
+      if (roleResult.status === 'fulfilled') setRole(roleResult.value?.data?.role ?? null);
       else console.error('[profile] role:', roleResult.reason);
 
       setLoading(false);
