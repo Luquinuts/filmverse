@@ -14,6 +14,7 @@ import {
   Users,
   UserPlus,
   LogOut,
+  Crown,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { ReviewCard } from '@/components/reviews/review-card';
@@ -58,6 +59,7 @@ export default function ProfilePage() {
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistRow[]>([]);
   const [stats, setStats] = useState<ProfileStats>(INITIAL_STATS);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -75,10 +77,11 @@ export default function ProfilePage() {
       );
       setEmail(data.user.email ?? '');
 
-      const [reviewsResult, watchlistResult, statsResult] = await Promise.allSettled([
+      const [reviewsResult, watchlistResult, statsResult, roleResult] = await Promise.allSettled([
         getReviews(supabase, uid),
         getWatchlist(supabase, uid),
         getUserStats(supabase, uid),
+        supabase.from('profiles').select('role').eq('id', uid).single(),
       ]);
 
       if (reviewsResult.status === 'fulfilled') setReviews(reviewsResult.value);
@@ -89,6 +92,9 @@ export default function ProfilePage() {
 
       if (statsResult.status === 'fulfilled') setStats(statsResult.value);
       else console.error('[profile] stats:', statsResult.reason);
+
+      if (roleResult.status === 'fulfilled') setRole(roleResult.value?.role ?? null);
+      else console.error('[profile] role:', roleResult.reason);
 
       setLoading(false);
     }).catch((err) => {
@@ -145,7 +151,12 @@ export default function ProfilePage() {
               <User className="size-8 text-cinema-gold" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">{username}</h1>
+              <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
+                {username}
+                {role === 'premium' && (
+                  <Crown className="size-6 text-cinema-gold" />
+                )}
+              </h1>
               <p className="text-sm text-muted-foreground">{email}</p>
             </div>
           </div>

@@ -49,10 +49,14 @@ Chain strategy: feature-branch-chain
 
 ## Phase 5: Frontend Pages
 
-- [ ] 5.1 Create `src/app/premium/page.tsx` — plans page with Subscribe CTA
-- [ ] 5.2 Create `src/app/premium/success/page.tsx` — post-checkout success landing
-- [ ] 5.3 Create `src/app/premium/failure/page.tsx` — post-checkout failure landing
-- [ ] 5.4 Create `src/app/premium/pending/page.tsx` — post-checkout pending landing
+- [x] 5.1 Created `src/app/premium/page.tsx` — plans page with Subscribe CTA
+- [x] 5.2 Created `src/app/premium/success/page.tsx` — post-checkout success landing
+- [x] 5.3 Created `src/app/premium/failure/page.tsx` — post-checkout failure landing
+- [x] 5.4 Created `src/app/premium/pending/page.tsx` — post-checkout pending landing
+
+### Additional: Premium badge
+- [x] Added Crown badge to `src/app/profile/page.tsx`
+- [x] Added Crown badge to `src/components/layout/navbar.tsx`
 
 ## Phase 6: Verification
 

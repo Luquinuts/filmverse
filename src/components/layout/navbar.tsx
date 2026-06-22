@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, User, Rss, Shield } from 'lucide-react';
+import { Menu, X, User, Rss, Shield, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { SearchInput } from '@/components/catalog/search-input';
 
@@ -15,6 +15,7 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [username, setUsername] = useState('');
 
   const checkAdmin = useCallback(async (userId: string) => {
@@ -24,6 +25,7 @@ export function Navbar() {
       .eq('id', userId)
       .single();
     setIsAdmin(data?.role === 'admin');
+    setIsPremium(data?.role === 'premium');
   }, [supabase]);
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export function Navbar() {
         } else {
           setIsLoggedIn(false);
           setIsAdmin(false);
+          setIsPremium(false);
           setUsername('');
         }
       },
@@ -112,6 +115,7 @@ export function Navbar() {
               >
                 <User className="size-4" />
                 {username}
+                {isPremium && <Crown className="size-3.5 text-cinema-gold" />}
               </Link>
             </>
           ) : (
@@ -184,6 +188,7 @@ export function Navbar() {
                 >
                   <User className="size-4" />
                   {username}
+                  {isPremium && <Crown className="size-3.5 text-cinema-gold" />}
                 </Link>
               </>
             ) : (
