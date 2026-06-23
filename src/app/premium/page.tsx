@@ -148,9 +148,10 @@ export default function PremiumPage() {
             </p>
             <ul className="mx-auto mt-6 mb-8 space-y-3 text-left">
               {[
+                'Reseñas ilimitadas',
+                'FilmIntelligence sin límite de consultas',
                 'Recomendaciones con IA',
                 'Insignia premium en tu perfil',
-                'Soporte prioritario',
                 'Sin publicidad',
               ].map((benefit) => (
                 <li

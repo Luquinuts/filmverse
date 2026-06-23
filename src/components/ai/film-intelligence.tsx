@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, X, MessageSquare } from 'lucide-react';
 import type { ChatMessage } from '@/lib/gemini';
+import { PremiumUpsell } from '../premium-upsell';
 
 const SUGGESTIONS = [
   'Recomendame una película de ciencia ficción',
@@ -16,6 +17,7 @@ export function FilmIntelligence() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -47,6 +49,11 @@ export function FilmIntelligence() {
           history: messages,
         }),
       });
+
+      if (res.status === 429) {
+        setShowUpsell(true);
+        return;
+      }
 
       const data = (await res.json()) as { response?: string; error?: string };
 
@@ -201,6 +208,12 @@ export function FilmIntelligence() {
             </div>
           </div>
         </div>
+      )}
+      {showUpsell && (
+        <PremiumUpsell
+          feature="ai_chat"
+          onClose={() => setShowUpsell(false)}
+        />
       )}
     </>
   );

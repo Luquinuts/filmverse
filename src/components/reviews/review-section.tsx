@@ -5,6 +5,7 @@ import { MessageSquareText } from 'lucide-react';
 import { ReviewForm } from './review-form';
 import { ReviewCard } from './review-card';
 import { ReportDialog } from './report-dialog';
+import { PremiumUpsell } from '../premium-upsell';
 import { createClient } from '@/lib/supabase/client';
 import {
   getFilmReviews,
@@ -35,6 +36,7 @@ export function ReviewSection({
   const [existingReview, setExistingReview] = useState<ReviewRow | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showUpsell, setShowUpsell] = useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
 
   const loadReviews = useCallback(async () => {
@@ -74,6 +76,12 @@ export function ReviewSection({
           is_spoiler: data.isSpoiler,
         }),
       });
+
+      if (res.status === 429) {
+        setShowForm(false);
+        setShowUpsell(true);
+        return;
+      }
 
       if (!res.ok) {
         const body = await res.json();
@@ -172,6 +180,14 @@ export function ReviewSection({
         <ReportDialog
           reviewId={reportTargetId}
           onClose={() => setReportTargetId(null)}
+        />
+      )}
+
+      {/* Premium upsell */}
+      {showUpsell && (
+        <PremiumUpsell
+          feature="review"
+          onClose={() => setShowUpsell(false)}
         />
       )}
     </section>
