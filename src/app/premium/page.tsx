@@ -6,14 +6,13 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { isPremium } from '@/lib/premium';
 
+const SUBSCRIPTION_URL = process.env.NEXT_PUBLIC_MP_SUBSCRIPTION_LINK;
+
 export default function PremiumPage() {
   const supabase = useRef(createClient()).current;
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [alreadyPremium, setAlreadyPremium] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  const [mpEmail, setMpEmail] = useState('');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -38,43 +37,6 @@ export default function PremiumPage() {
     });
   }, [supabase]);
 
-  const handleSubscribe = async () => {
-    setLoading(true);
-    setError(null);
-
-    if (!mpEmail.trim()) {
-      setError('Ingresá tu email de Mercado Pago');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/premium/create-preference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: mpEmail.trim() }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? 'Error al crear la preferencia de pago');
-        setLoading(false);
-        return;
-      }
-
-      if (data.initPoint) {
-        window.location.href = data.initPoint;
-      } else {
-        setError('No se pudo obtener la URL de pago');
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error('[premium] create-preference:', err);
-      setError('Error de conexión. Intentá de nuevo.');
-      setLoading(false);
-    }
-  };
-
   if (authLoading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12">
@@ -97,7 +59,7 @@ export default function PremiumPage() {
       </Link>
 
       {/* Already premium banner */}
-      {alreadyPremium && (
+      {alreadyPremium ? (
         <div className="mb-8 rounded-2xl border border-cinema-gold/30 bg-cinema-gold/10 p-6 text-center">
           <Crown className="mx-auto mb-2 size-10 text-cinema-gold" />
           <h2 className="text-xl font-bold text-white">Ya sos Premium</h2>
@@ -111,10 +73,7 @@ export default function PremiumPage() {
             Ir al Dashboard
           </Link>
         </div>
-      )}
-
-      {/* Hero section (hidden if already premium) */}
-      {!alreadyPremium && (
+      ) : (
         <>
           <div className="mb-8 text-center">
             <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-cinema-gold/20">
@@ -157,33 +116,19 @@ export default function PremiumPage() {
               ))}
             </ul>
 
-            {/* Email input — MP needs this to create the subscription */}
-            <div className="mb-4 text-left">
-              <label
-                htmlFor="mp-email"
-                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            {SUBSCRIPTION_URL ? (
+              <a
+                href={SUBSCRIPTION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full rounded-lg bg-cinema-gold px-6 py-3 text-base font-semibold text-black transition-colors hover:bg-cinema-amber text-center"
               >
-                Email de tu cuenta de Mercado Pago
-              </label>
-              <input
-                id="mp-email"
-                type="email"
-                value={mpEmail}
-                onChange={(e) => setMpEmail(e.target.value)}
-                placeholder="ejemplo@correo.com"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:border-cinema-gold focus:outline-none"
-              />
-            </div>
-
-            <button
-              onClick={handleSubscribe}
-              disabled={loading}
-              className="w-full rounded-lg bg-cinema-gold px-6 py-3 text-base font-semibold text-black transition-colors hover:bg-cinema-amber disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? 'Procesando...' : 'Suscribirse'}
-            </button>
-            {error && (
-              <p className="mt-3 text-sm text-red-400">{error}</p>
+                Suscribirse
+              </a>
+            ) : (
+              <p className="text-sm text-red-400">
+                El enlace de suscripción no está configurado.
+              </p>
             )}
           </div>
         </>
