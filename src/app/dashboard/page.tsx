@@ -8,6 +8,7 @@ import {
   Bookmark,
   MessageSquareText,
   TrendingUp,
+  Crown,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(INITIAL_STATS);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistRow[]>([]);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (authChecked.current) return;
@@ -66,11 +68,13 @@ export default function DashboardPage() {
 
       // Load dashboard data in parallel
       try {
-        const [statsData, reviewsData, watchlistData] = await Promise.all([
+        const [statsData, reviewsData, watchlistData, profileData] = await Promise.all([
           getUserStats(supabase, uid),
           getReviews(supabase, uid),
           getWatchlist(supabase, uid),
+          supabase.from('profiles').select('role').eq('id', uid).single(),
         ]);
+        if (profileData.data?.role) setRole(profileData.data.role);
         setStats(statsData);
         setReviews(reviewsData.slice(0, 5));
         setWatchlist(watchlistData);
@@ -105,8 +109,9 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       {/* Welcome */}
       <section className="mb-8">
-        <h1 className="text-3xl font-bold text-white">
+        <h1 className="text-3xl font-bold text-white flex items-center gap-2">
           Bienvenido, {username}
+          {role === 'premium' && <Crown className="size-7 text-cinema-gold" />}
         </h1>
         <p className="mt-1 text-muted-foreground">
           Esto es lo tuyo en FilmVerse
