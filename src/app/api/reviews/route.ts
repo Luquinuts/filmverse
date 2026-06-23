@@ -26,9 +26,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { film_id, film_title, film_poster, film_year, rating, content, is_spoiler } = body;
 
-    if (!film_id || !rating || !content) {
+    if (!film_id || rating === undefined || content === undefined) {
       return NextResponse.json(
         { error: 'Faltan campos requeridos (film_id, rating, content)' },
+        { status: 400 },
+      );
+    }
+
+    if (typeof rating !== 'number' || rating < 1 || rating > 10) {
+      return NextResponse.json(
+        { error: 'Rating debe ser un número entre 1 y 10' },
         { status: 400 },
       );
     }
