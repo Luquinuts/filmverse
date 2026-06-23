@@ -8,7 +8,6 @@ import { ReportDialog } from './report-dialog';
 import { createClient } from '@/lib/supabase/client';
 import {
   getFilmReviews,
-  saveReview,
   deleteReview,
   getUserRating,
 } from '@/lib/supabase/store';

@@ -14,7 +14,6 @@ export default function PremiumPage() {
   const [alreadyPremium, setAlreadyPremium] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [nextBilling, setNextBilling] = useState<string | null>(null);
-  const [subStatus, setSubStatus] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -38,7 +37,6 @@ export default function PremiumPage() {
           if (res.ok) {
             const data = await res.json();
             if (data.subscribed) {
-              setSubStatus(data.status);
               if (data.nextBillingDate) {
                 setNextBilling(
                   new Date(data.nextBillingDate).toLocaleDateString('es-AR', {
