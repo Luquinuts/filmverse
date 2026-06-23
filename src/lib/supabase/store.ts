@@ -1101,7 +1101,7 @@ export async function getActiveSubscription(
   // Calcular próxima facturación: start_date + 1 mes por cada mes transcurrido
   const start = new Date(data.start_date);
   const now = new Date();
-  let nextBilling = new Date(start);
+  const nextBilling = new Date(start);
 
   while (nextBilling <= now) {
     nextBilling.setMonth(nextBilling.getMonth() + 1);
