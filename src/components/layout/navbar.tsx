@@ -100,6 +100,13 @@ export function Navbar() {
                 <Rss className="size-4" />
                 Feed
               </Link>
+              <Link
+                href="/premium"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+              >
+                <Crown className="size-4" />
+                Premium
+              </Link>
               {isAdmin && (
                 <Link
                   href="/admin/reports"
@@ -170,6 +177,14 @@ export function Navbar() {
                 >
                   <Rss className="size-4" />
                   Feed
+                </Link>
+                <Link
+                  href="/premium"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-cinema-gold"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Crown className="size-4" />
+                  Premium
                 </Link>
                 {isAdmin && (
                   <Link
