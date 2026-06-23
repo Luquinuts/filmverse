@@ -110,8 +110,10 @@ export async function POST(request: NextRequest) {
       })),
     );
 
-    // Persist to Supabase
-    await setDailyRecommendation(supabase, body.userId, dateStr, recommendations);
+    // No cachear si Gemini devolvió vacío — así el user puede reintentar
+    if (recommendations.length > 0) {
+      await setDailyRecommendation(supabase, body.userId, dateStr, recommendations);
+    }
 
     return NextResponse.json({
       recommendations,
