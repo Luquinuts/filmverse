@@ -32,7 +32,7 @@ export function ListCard({ list }: ListCardProps) {
         className={cn(
           'glass relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 rounded-xl p-6',
           'transition-all duration-200',
-          'hover:border-cinema-gold/40 hover:shadow-[0_0_20px_oklch(0.72_0.15_75/30%)]',
+          'hover:border-cinema-gold/40 hover:shadow-[0_0_20px_oklch(0.6_0.2_260/30%)]',
         )}
       >
         {/* Gradient cover */}
