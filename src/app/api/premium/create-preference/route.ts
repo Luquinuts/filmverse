@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { MercadoPagoClient } from '@/lib/mercadopago';
+import { MercadoPagoClient, MercadoPagoApiError } from '@/lib/mercadopago';
 
 export async function POST() {
   try {
@@ -29,9 +29,13 @@ export async function POST() {
       initPoint: preference.initPoint,
     });
   } catch (error) {
+    const message =
+      error instanceof MercadoPagoApiError
+        ? error.message
+        : 'Error al crear la preferencia de pago';
     console.error('[API /premium/create-preference]', error);
     return NextResponse.json(
-      { error: 'Error al crear la preferencia de pago' },
+      { error: message },
       { status: 500 },
     );
   }
