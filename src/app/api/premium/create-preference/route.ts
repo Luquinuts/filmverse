@@ -7,9 +7,9 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { MercadoPagoClient, MercadoPagoApiError } from '@/lib/mercadopago';
+import { MercadoPagoClient } from '@/lib/mercadopago';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -21,10 +21,19 @@ export async function POST() {
       );
     }
 
+    const { email } = await request.json();
+
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return NextResponse.json(
+        { error: 'Email de Mercado Pago inválido' },
+        { status: 400 },
+      );
+    }
+
     const mpClient = new MercadoPagoClient();
     const preference = await mpClient.createSubscriptionPreference(
       user.id,
-      user.email ?? undefined,
+      email,
     );
 
     return NextResponse.json({
@@ -32,13 +41,9 @@ export async function POST() {
       initPoint: preference.initPoint,
     });
   } catch (error) {
-    const message =
-      error instanceof MercadoPagoApiError
-        ? error.message
-        : 'Error al crear la preferencia de pago';
     console.error('[API /premium/create-preference]', error);
     return NextResponse.json(
-      { error: message },
+      { error: 'Error al crear la preferencia de pago' },
       { status: 500 },
     );
   }

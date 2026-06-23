@@ -13,6 +13,7 @@ export default function PremiumPage() {
   const [error, setError] = useState<string | null>(null);
   const [alreadyPremium, setAlreadyPremium] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [mpEmail, setMpEmail] = useState('');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -41,9 +42,17 @@ export default function PremiumPage() {
     setLoading(true);
     setError(null);
 
+    if (!mpEmail.trim()) {
+      setError('Ingresá tu email de Mercado Pago');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/premium/create-preference', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: mpEmail.trim() }),
       });
       const data = await res.json();
 
@@ -147,6 +156,25 @@ export default function PremiumPage() {
                 </li>
               ))}
             </ul>
+
+            {/* Email input — MP needs this to create the subscription */}
+            <div className="mb-4 text-left">
+              <label
+                htmlFor="mp-email"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Email de tu cuenta de Mercado Pago
+              </label>
+              <input
+                id="mp-email"
+                type="email"
+                value={mpEmail}
+                onChange={(e) => setMpEmail(e.target.value)}
+                placeholder="ejemplo@correo.com"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:border-cinema-gold focus:outline-none"
+              />
+            </div>
+
             <button
               onClick={handleSubscribe}
               disabled={loading}
