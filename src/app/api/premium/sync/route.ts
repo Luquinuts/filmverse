@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { MercadoPagoClient } from '@/lib/mercadopago';
 
 export async function POST() {
   try {
@@ -26,7 +27,7 @@ export async function POST() {
     // Verificar si ya tiene suscripción activa
     const { data: existing } = await adminClient
       .from('premium_subscriptions')
-      .select('id, status')
+      .select('id, status, mercadopago_subscription_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -62,6 +63,33 @@ export async function POST() {
       .from('profiles')
       .update({ role: 'premium' })
       .eq('id', user.id);
+
+    // ─── Best-effort: buscar y guardar el ID de suscripción de MP ───
+    // Con link estático no recibimos el preapproval_id, así que buscamos
+    // por email para que los webhooks puedan identificar al usuario.
+    if (user.email) {
+      try {
+        const mp = new MercadoPagoClient();
+        const preapproval = await mp.searchPreapprovalsByEmail(user.email);
+
+        if (preapproval?.id) {
+          await adminClient
+            .from('premium_subscriptions')
+            .update({ mercadopago_subscription_id: preapproval.id })
+            .eq('user_id', user.id);
+
+          console.info(
+            `[API /premium/sync] MP subscription ID guardado: ${preapproval.id}`,
+          );
+        }
+      } catch (err) {
+        // No crítico — la suscripción ya está activa sin el MP ID
+        console.warn(
+          '[API /premium/sync] No se pudo obtener MP subscription ID:',
+          err,
+        );
+      }
+    }
 
     return NextResponse.json({ synced: true, status: 'created' });
   } catch (error) {

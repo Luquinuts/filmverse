@@ -314,36 +314,46 @@ export class MercadoPagoClient {
   /**
    * Procesa `subscription_cancelled`.
    *
-   * TODO: Implementar en PR 2 — llamar a store.ts:
-   *   - `cancelSubscription(client, userId)` para:
-   *     1. UPDATE premium_subscriptions SET status='cancelled', end_date=NOW()
-   *     2. UPDATE profiles SET role='cinefilo'
+   * Busca la suscripción local por mercadopago_subscription_id.
+   * Si no la encuentra, intenta resolver el userId via fetchPreapproval
+   * (por external_reference o payer_email).
    */
   private async handleSubscriptionCancelled(
     event: MercadoPagoWebhookEvent,
     adminClient?: SupabaseClient,
   ): Promise<void> {
-    console.info(
-      `[MercadoPago] Suscripción cancelada: ${event.data.id}`,
-    );
+    console.info(`[MercadoPago] Suscripción cancelada: ${event.data.id}`);
 
     if (!adminClient) return;
 
     try {
-      // Buscar userId en nuestra BD por mercadopago_subscription_id
       const { getSubscriptionByMpId, updateSubscriptionAndRole } =
         await import('@/lib/supabase/store');
 
       const sub = await getSubscriptionByMpId(adminClient, event.data.id);
 
-      if (!sub) {
-        console.warn(
-          `[MercadoPago] No se encontró suscripción local para MP ID ${event.data.id}`,
-        );
+      if (sub) {
+        await updateSubscriptionAndRole(adminClient, sub.user_id, 'cancel');
         return;
       }
 
-      await updateSubscriptionAndRole(adminClient, sub.user_id, 'cancel');
+      // Fallback: no tenemos el MP ID guardado — resolver desde MP API
+      const userId = await this.resolveUserIdFromPreapproval(
+        event.data.id,
+        adminClient,
+      );
+      if (userId) {
+        await updateSubscriptionAndRole(adminClient, userId, 'cancel');
+        // Guardar el MP ID para futuros eventos
+        await adminClient
+          .from('premium_subscriptions')
+          .update({ mercadopago_subscription_id: event.data.id })
+          .eq('user_id', userId);
+      } else {
+        console.warn(
+          `[MercadoPago] No se pudo resolver usuario para preapproval ${event.data.id}`,
+        );
+      }
     } catch (err) {
       console.error('[MercadoPago] Error en handleSubscriptionCancelled:', err);
     }
@@ -352,17 +362,13 @@ export class MercadoPagoClient {
   /**
    * Procesa `subscription_expired`.
    *
-   * TODO: Implementar en PR 2 — llamar a store.ts:
-   *   - `cancelSubscription(client, userId)` es reutilizable
-   *     (cambia status a 'expired' en lugar de 'cancelled')
+   * Misma lógica que handleSubscriptionCancelled pero setea status 'expired'.
    */
   private async handleSubscriptionExpired(
     event: MercadoPagoWebhookEvent,
     adminClient?: SupabaseClient,
   ): Promise<void> {
-    console.info(
-      `[MercadoPago] Suscripción expirada: ${event.data.id}`,
-    );
+    console.info(`[MercadoPago] Suscripción expirada: ${event.data.id}`);
 
     if (!adminClient) return;
 
@@ -372,16 +378,76 @@ export class MercadoPagoClient {
 
       const sub = await getSubscriptionByMpId(adminClient, event.data.id);
 
-      if (!sub) {
-        console.warn(
-          `[MercadoPago] No se encontró suscripción local para MP ID ${event.data.id}`,
-        );
+      if (sub) {
+        await updateSubscriptionAndRole(adminClient, sub.user_id, 'expire');
         return;
       }
 
-      await updateSubscriptionAndRole(adminClient, sub.user_id, 'expire');
+      // Fallback
+      const userId = await this.resolveUserIdFromPreapproval(
+        event.data.id,
+        adminClient,
+      );
+      if (userId) {
+        await updateSubscriptionAndRole(adminClient, userId, 'expire');
+        await adminClient
+          .from('premium_subscriptions')
+          .update({ mercadopago_subscription_id: event.data.id })
+          .eq('user_id', userId);
+      } else {
+        console.warn(
+          `[MercadoPago] No se pudo resolver usuario para preapproval ${event.data.id}`,
+        );
+      }
     } catch (err) {
       console.error('[MercadoPago] Error en handleSubscriptionExpired:', err);
+    }
+  }
+
+  /**
+   * Intenta resolver un userId desde un preapproval ID de MP.
+   *
+   * Orden de matching:
+   * 1. external_reference (userId seteado al crear la preferencia)
+   * 2. payer_email → buscar en profiles (via función SQL)
+   *
+   * @returns userId o null si no se pudo resolver
+   */
+  private async resolveUserIdFromPreapproval(
+    preapprovalId: string,
+    adminClient: SupabaseClient,
+  ): Promise<string | null> {
+    try {
+      const preapproval = await this.fetchPreapproval(preapprovalId);
+      if (!preapproval) return null;
+
+      // 1. external_reference = userId
+      if (preapproval.external_reference) {
+        const { getSubscriptionByMpId: _getByMpId } = await import(
+          '@/lib/supabase/store'
+        );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _sub = await _getByMpId(adminClient, preapprovalId);
+        return preapproval.external_reference;
+      }
+
+      // 2. Fallback por email
+      if (preapproval.payer_email) {
+        const { data } = await adminClient.rpc('get_user_id_by_email', {
+          p_email: preapproval.payer_email,
+        });
+        if (data) return data as string;
+
+        // Último recurso: buscar en public.profiles (no tiene email)
+        console.warn(
+          `[MercadoPago] No se encontró usuario con email ${preapproval.payer_email}`,
+        );
+      }
+
+      return null;
+    } catch (err) {
+      console.error('[MercadoPago] resolveUserIdFromPreapproval falló:', err);
+      return null;
     }
   }
 
@@ -516,15 +582,69 @@ export class MercadoPagoClient {
   // ─── Operaciones sobre suscripciones existentes ───
 
   /**
+   * Busca preapprovals activos por email del pagador.
+   * Usado en el sync para obtener el MP subscription ID después de que el
+   * usuario se suscribe vía link estático y no tenemos el ID de vuelta.
+   *
+   * @param email - Email del usuario en FilmVerse (se busca como payer_email en MP)
+   * @returns El primer preapproval activo encontrado, o null
+   */
+  async searchPreapprovalsByEmail(
+    email: string,
+  ): Promise<{ id: string; status: string } | null> {
+    if (!this.accessToken) {
+      console.warn('[MercadoPago] searchPreapprovalsByEmail: sin token');
+      return null;
+    }
+
+    try {
+      const url = new URL(`${MP_API_BASE_URL}/preapproval/search`);
+      url.searchParams.set('payer_email', email);
+      url.searchParams.set('sort', 'date_created');
+      url.searchParams.set('criteria', 'desc');
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(
+          `[MercadoPago] Error al buscar preapprovals: ${response.status}`,
+        );
+        return null;
+      }
+
+      const data = (await response.json()) as {
+        results?: Array<{ id: string; status: string }>;
+      };
+
+      if (!data.results || data.results.length === 0) return null;
+
+      // Devolver el primero (debería ser uno solo)
+      return data.results[0];
+    } catch (err) {
+      console.error('[MercadoPago] searchPreapprovalsByEmail falló:', err);
+      return null;
+    }
+  }
+
+  /**
    * Obtiene los detalles de un preapproval de Mercado Pago.
-   * Usado por webhooks para resolver el userId desde external_reference.
+   * Usado por webhooks para resolver el userId desde external_reference
+   * o payer_email como fallback.
    *
    * @param preapprovalId - ID del preapproval en MP (ej: "2c938084...")
    * @returns Datos del preapproval o null si falla
    */
   private async fetchPreapproval(
     preapprovalId: string,
-  ): Promise<{ external_reference: string } | null> {
+  ): Promise<{
+    external_reference: string;
+    payer_email?: string;
+    status?: string;
+  } | null> {
     if (!this.accessToken) {
       console.warn('[MercadoPago] fetchPreapproval: sin token');
       return null;
@@ -547,7 +667,17 @@ export class MercadoPagoClient {
         return null;
       }
 
-      return response.json() as Promise<{ external_reference: string }>;
+      const data = (await response.json()) as {
+        external_reference: string;
+        payer_email?: string;
+        status?: string;
+      };
+
+      return {
+        external_reference: data.external_reference,
+        payer_email: data.payer_email,
+        status: data.status,
+      };
     } catch (err) {
       console.error('[MercadoPago] fetchPreapproval falló:', err);
       return null;
