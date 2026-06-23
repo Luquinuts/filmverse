@@ -984,3 +984,133 @@ export async function updateSubscriptionAndRole(
     throw profileError;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Daily usage (rate limiting)
+// ═══════════════════════════════════════════════════════════════
+
+const DAILY_LIMITS: Record<string, number> = {
+  review: 3,
+  ai_chat: 3,
+};
+
+/**
+ * Obtiene el uso diario de un feature para un usuario.
+ * Premium siempre devuelve 0 (sin límite).
+ */
+export async function getDailyUsage(
+  client: SupabaseClient,
+  userId: string,
+  feature: string,
+): Promise<{ used: number; limit: number }> {
+  // Si es premium, no hay límite
+  const { data: profile } = await client
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+
+  if (profile?.role === 'premium') {
+    return { used: 0, limit: Infinity };
+  }
+
+  const limit = DAILY_LIMITS[feature] ?? Infinity;
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Para reseñas, contamos desde la tabla reviews directamente
+  if (feature === 'review') {
+    const { count } = await client
+      .from('reviews')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', today)
+      .is('deleted_at', null);
+
+    return { used: count ?? 0, limit };
+  }
+
+  // Para otros features, usar daily_usage table
+  const { data } = await client
+    .from('daily_usage')
+    .select('count')
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .eq('date', today)
+    .maybeSingle();
+
+  return { used: data?.count ?? 0, limit };
+}
+
+/**
+ * Incrementa el contador de uso diario de un feature.
+ * Usa service_role client para evitar RLS.
+ */
+export async function incrementDailyUsage(
+  adminClient: SupabaseClient,
+  userId: string,
+  feature: string,
+): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: existing } = await adminClient
+    .from('daily_usage')
+    .select('count')
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .eq('date', today)
+    .maybeSingle();
+
+  if (existing) {
+    await adminClient
+      .from('daily_usage')
+      .update({ count: existing.count + 1 })
+      .eq('user_id', userId)
+      .eq('feature', feature)
+      .eq('date', today);
+  } else {
+    await adminClient
+      .from('daily_usage')
+      .insert({ user_id: userId, feature, date: today, count: 1 });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Subscription info
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Obtiene la suscripción activa de un usuario con próxima facturación.
+ */
+export async function getActiveSubscription(
+  client: SupabaseClient,
+  userId: string,
+): Promise<{
+  id: string;
+  status: string;
+  start_date: string;
+  next_billing_date: string;
+} | null> {
+  const { data, error } = await client
+    .from('premium_subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  // Calcular próxima facturación: start_date + 1 mes por cada mes transcurrido
+  const start = new Date(data.start_date);
+  const now = new Date();
+  let nextBilling = new Date(start);
+
+  while (nextBilling <= now) {
+    nextBilling.setMonth(nextBilling.getMonth() + 1);
+  }
+
+  return {
+    id: data.id,
+    status: data.status,
+    start_date: data.start_date,
+    next_billing_date: nextBilling.toISOString(),
+  };
+}

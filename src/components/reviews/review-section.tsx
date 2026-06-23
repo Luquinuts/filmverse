@@ -62,16 +62,25 @@ export function ReviewSection({
   }) => {
     try {
       setSaveError(null);
-      const reviewInsert = {
-        film_id: filmId,
-        film_title: filmTitle,
-        film_poster: filmPoster,
-        film_year: filmYear,
-        rating: data.rating,
-        content: data.content,
-        is_spoiler: data.isSpoiler,
-      };
-      await saveReview(supabase, userId, reviewInsert);
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          film_id: filmId,
+          film_title: filmTitle,
+          film_poster: filmPoster,
+          film_year: filmYear,
+          rating: data.rating,
+          content: data.content,
+          is_spoiler: data.isSpoiler,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error ?? 'Error al guardar la reseña');
+      }
+
       setShowForm(false);
       loadReviews();
     } catch (err) {

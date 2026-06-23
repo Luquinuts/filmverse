@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Crown, ArrowLeft, Sparkles, Check, Loader2 } from 'lucide-react';
+import { Crown, ArrowLeft, Sparkles, Check, Loader2, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { isPremium } from '@/lib/premium';
@@ -13,6 +13,8 @@ export default function PremiumPage() {
 
   const [alreadyPremium, setAlreadyPremium] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [nextBilling, setNextBilling] = useState<string | null>(null);
+  const [subStatus, setSubStatus] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -29,6 +31,28 @@ export default function PremiumPage() {
 
       if (profile && isPremium(profile)) {
         setAlreadyPremium(true);
+
+        // Fetch subscription details
+        try {
+          const res = await fetch('/api/premium/subscription');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.subscribed) {
+              setSubStatus(data.status);
+              if (data.nextBillingDate) {
+                setNextBilling(
+                  new Date(data.nextBillingDate).toLocaleDateString('es-AR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  }),
+                );
+              }
+            }
+          }
+        } catch {
+          // Silently fail — subscription info is non-critical
+        }
       }
 
       setAuthLoading(false);
@@ -66,6 +90,12 @@ export default function PremiumPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Disfrutá de todas las funcionalidades exclusivas de FilmVerse Premium.
           </p>
+          {nextBilling && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-cinema-gold/80">
+              <Calendar className="size-4" />
+              <span>Próxima facturación: {nextBilling}</span>
+            </div>
+          )}
           <Link
             href="/dashboard"
             className="mt-4 inline-block rounded-lg bg-cinema-gold px-5 py-2 text-sm font-semibold text-black transition-colors hover:bg-cinema-amber"

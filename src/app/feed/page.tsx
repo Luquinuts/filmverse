@@ -373,6 +373,7 @@ export default function FeedPage() {
                 profilesMap[review.user_id]?.username ??
                 review.user_id.slice(0, 8)
               }
+              isPremium={profilesMap[review.user_id]?.role === 'premium'}
               onReport={setReportTargetId}
             />
           ))}

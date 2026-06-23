@@ -1,6 +1,6 @@
 'use client';
 
-import { Star, Trash2, AlertTriangle, Flag } from 'lucide-react';
+import { Star, Trash2, AlertTriangle, Flag, Crown } from 'lucide-react';
 import type { ReviewRow } from '@/lib/types';
 
 interface ReviewCardProps {
@@ -10,6 +10,7 @@ interface ReviewCardProps {
   onReport?: (id: string) => void;
   showFilmInfo?: boolean;
   username?: string;
+  isPremium?: boolean;
 }
 
 export function ReviewCard({
@@ -19,6 +20,7 @@ export function ReviewCard({
   onReport,
   showFilmInfo,
   username,
+  isPremium,
 }: ReviewCardProps) {
   return (
     <article
@@ -33,6 +35,7 @@ export function ReviewCard({
             <span className="font-medium text-white text-sm">
               {username ?? review.user_id.slice(0, 8)}
             </span>
+            {isPremium && <Crown className="size-3.5 text-cinema-gold" />}
             {showFilmInfo && (
               <span className="text-xs text-muted-foreground truncate">
                 en {review.film_title}
