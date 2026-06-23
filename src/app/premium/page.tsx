@@ -28,24 +28,43 @@ export default function PremiumPage() {
         .eq('id', data.user.id)
         .single();
 
-      if (profile && isPremium(profile)) {
+      const isPremiumUser = profile && isPremium(profile);
+
+      // Fallback: si el rol no es premium, chequear si hay suscripción activa
+      if (!isPremiumUser) {
+        try {
+          const res = await fetch('/api/premium/subscription');
+          if (res.ok) {
+            const subData = await res.json();
+            if (subData.subscribed && subData.status === 'active') {
+              // Hay suscripción pero rol desactualizado — sincronizar
+              await fetch('/api/premium/sync', { method: 'POST' });
+              setAlreadyPremium(true);
+              setAuthLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // Silently fail
+        }
+      }
+
+      if (isPremiumUser) {
         setAlreadyPremium(true);
 
         // Fetch subscription details
         try {
           const res = await fetch('/api/premium/subscription');
           if (res.ok) {
-            const data = await res.json();
-            if (data.subscribed) {
-              if (data.nextBillingDate) {
-                setNextBilling(
-                  new Date(data.nextBillingDate).toLocaleDateString('es-AR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  }),
-                );
-              }
+            const subData = await res.json();
+            if (subData.subscribed && subData.nextBillingDate) {
+              setNextBilling(
+                new Date(subData.nextBillingDate).toLocaleDateString('es-AR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                }),
+              );
             }
           }
         } catch {
