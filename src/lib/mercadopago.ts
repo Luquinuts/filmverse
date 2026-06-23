@@ -191,8 +191,14 @@ export class MercadoPagoClient {
     });
 
     if (!response.ok) {
+      let errorBody = '';
+      try {
+        errorBody = await response.text();
+      } catch {
+        // ignore parse error
+      }
       throw new MercadoPagoApiError(
-        `Error al crear preapproval: ${response.statusText}`,
+        `Error al crear preapproval (${response.status}): ${errorBody || response.statusText}`,
         response.status,
       );
     }
