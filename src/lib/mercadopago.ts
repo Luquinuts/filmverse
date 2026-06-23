@@ -113,9 +113,9 @@ export class MercadoPagoClient {
             unit_price: item.unit_price,
           })),
           back_urls: {
-            success: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/premium/success`,
-            failure: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/premium/failure`,
-            pending: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/premium/pending`,
+            success: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/premium/success`,
+            failure: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/premium/failure`,
+            pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/premium/pending`,
           },
           auto_return: 'approved',
         }),
@@ -161,12 +161,12 @@ export class MercadoPagoClient {
       );
       return {
         id: `stub_preapproval_${Date.now()}`,
-        initPoint: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/premium/success?preapproval_id=stub`,
+        initPoint: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/premium/success?preapproval_id=stub`,
       };
     }
 
     const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     const body: PreapprovalRequest = {
       reason: 'FilmVerse Premium',
