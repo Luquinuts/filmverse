@@ -25,6 +25,7 @@ const PREMIUM_CURRENCY = 'ARS';
 interface PreapprovalRequest {
   reason: string;
   external_reference: string;
+  payer_email?: string;
   auto_recurring: {
     frequency: number;
     frequency_type: string;
@@ -153,6 +154,7 @@ export class MercadoPagoClient {
    */
   async createSubscriptionPreference(
     userId: string,
+    payerEmail?: string,
   ): Promise<{ id: string; initPoint: string }> {
     // Fallback a stub en desarrollo
     if (!this.accessToken) {
@@ -171,6 +173,7 @@ export class MercadoPagoClient {
     const body: PreapprovalRequest = {
       reason: 'FilmVerse Premium',
       external_reference: userId,
+      payer_email: payerEmail,
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',

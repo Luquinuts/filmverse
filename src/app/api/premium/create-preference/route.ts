@@ -22,7 +22,10 @@ export async function POST() {
     }
 
     const mpClient = new MercadoPagoClient();
-    const preference = await mpClient.createSubscriptionPreference(user.id);
+    const preference = await mpClient.createSubscriptionPreference(
+      user.id,
+      user.email ?? undefined,
+    );
 
     return NextResponse.json({
       preferenceId: preference.id,
